@@ -47,7 +47,7 @@ function runCard(r: Run): HTMLElement {
 function listPane(): HTMLElement {
   const list = sortedRuns().filter((r) => (ui.statusFilter === "all" || r.status === ui.statusFilter)
     && (!ui.query || `${r.title} ${r.id} ${r.role}`.toLowerCase().includes(ui.query)));
-  const running = [...runs.values()].filter((r) => r.status === "running").length;
+  const running = sortedRuns().filter((r) => r.status === "running").length;
   const pane = html`<aside class="w-[360px] flex-shrink-0 flex flex-col bg-surface-container-lowest select-none">
     <div class="p-space-md flex flex-col gap-space-sm bg-surface-container-low/60 shadow-sm">
       <div class="relative flex items-center">
@@ -64,12 +64,12 @@ function listPane(): HTMLElement {
     </div>
     <div class="flex-1 overflow-y-auto flex flex-col p-1.5 gap-1" id="run-list"></div>
     <div class="p-space-sm bg-surface-container-low/80 flex items-center justify-between font-label-sm text-label-sm text-outline">
-      <span>${list.length} / ${runs.size} Run</span>
+      <span>${list.length} / ${sortedRuns().length} Run</span>
       <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> ${running} Koşuyor</span>
     </div>
   </aside>`;
   const box = pane.querySelector("#run-list")!;
-  if (!list.length) box.append(html`<p class="p-space-md text-outline font-body-sm text-body-sm">${runs.size ? "Filtreye uyan run yok." : "Henüz run yok. Servis çalışınca burada görünür."}</p>`);
+  if (!list.length) box.append(html`<p class="p-space-md text-outline font-body-sm text-body-sm">${sortedRuns().length ? "Filtreye uyan run yok." : "Henüz run yok. Servis çalışınca burada görünür."}</p>`);
   list.forEach((r) => box.append(runCard(r)));
   (pane.querySelector("#run-search") as HTMLInputElement).oninput = (e) => {
     ui.query = (e.target as HTMLInputElement).value.toLowerCase();
@@ -111,8 +111,10 @@ function diffBlock(d: ToolDiff): HTMLElement {
   </div>`;
 }
 
-function itemRow(item: Item, key: string): HTMLElement | null {
+export function itemRow(item: Item, key: string): HTMLElement | null {
   switch (item.kind) {
+    case "user":
+      return html`<div class="flex justify-end"><div class="max-w-[80%] rounded bg-primary-container/30 text-on-surface p-space-md font-body-md text-body-md whitespace-pre-wrap">${item.text}</div></div>`;
     case "attempt":
       return html`<div class="flex items-center gap-2 pt-space-sm"><div class="h-px flex-1 bg-outline-variant/30"></div><span class="font-label-md text-label-md text-outline uppercase">Attempt ${item.n} · ${item.role} · ${item.cli}</span><div class="h-px flex-1 bg-outline-variant/30"></div></div>`;
     case "stage":

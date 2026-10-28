@@ -15,6 +15,7 @@ from .graph import build_graph
 from .registry import LocalRegistry
 from .service import AlreadyRunning, ServiceState, HEARTBEAT_EVERY, mark_interrupted
 from .sources import FileSource, LinearSource
+from .workspaces import Workspace, load as load_workspaces, route
 
 
 def workdir(repo: Path, task_id: str) -> str:
@@ -35,10 +36,19 @@ async def amain(a: argparse.Namespace):
     source = FileSource(a.tasks) if a.source == "file" else LinearSource(
         label=a.label, ready=a.linear_ready, progress=a.linear_progress,
         review=a.linear_review, blocked=a.linear_blocked)
+    if a.chat:
+        from .chat import run_chat
+        await run_chat(a.agent or "claude", str(Path(a.repo).resolve()))
+        return
     if a.list_queue:
         if a.source != "linear":
             raise SystemExit("--list-queue only applies to --source linear")
         print(json.dumps(source.list_queue()))
+        return
+    if a.list_projects:
+        if a.source != "linear":
+            raise SystemExit("--list-projects only applies to --source linear")
+        print(json.dumps(source.list_projects()))
         return
     if a.check:
         print(source.diagnose() if a.source == "linear" else "--check only applies to --source linear")
@@ -64,6 +74,7 @@ async def amain(a: argparse.Namespace):
 
 
 async def _serve(a, source, repo, state):
+    skipped: set[str] = set()  # log each unroutable task once, not every poll
     async with AsyncSqliteSaver.from_conn_string(a.db) as cp:
         graph = build_graph(source, LocalRegistry(a.registry), runs_dir=a.runs, agent_override=a.agent,
                             max_attempts=a.max_attempts, timeout=a.timeout,
@@ -73,9 +84,17 @@ async def _serve(a, source, repo, state):
                             triager=None if a.triage == "none" else a.triage)
         while True:
             state.beat("polling")
+            # re-read each poll: workspaces edited in the UI apply without restarting the service
+            workspaces = load_workspaces(a.workspaces) if a.workspaces else [Workspace("default", str(repo))]
             tasks = source.fetch_ready()
             print(f"[poll] {len(tasks)} ready task(s)", flush=True)
             for t in tasks:
+                ws = route(t, workspaces)
+                if ws is None:
+                    if t["id"] not in skipped:
+                        skipped.add(t["id"])
+                        print(f"[skip] {t['title']}: no enabled workspace for its project", flush=True)
+                    continue
                 cfg = {"configurable": {"thread_id": t["id"]}}
                 snap = await graph.aget_state(cfg)
                 state.beat("running", t["title"])
@@ -83,7 +102,8 @@ async def _serve(a, source, repo, state):
                 inp = None if snap.next else {  # crashed mid-run -> resume from checkpoint
                     "task_id": t["id"], "role": t.get("role") or "implementer",
                     "title": t["title"], "description": t["description"],
-                    "verify_cmd": t["verify"], "verified": t.get("verified", True), "labels": t.get("labels") or [], "cwd": workdir(repo, t["id"])}
+                    "verify_cmd": t["verify"], "verified": t.get("verified", True), "labels": t.get("labels") or [],
+                    "cwd": workdir(Path(ws.repo).resolve(), t["id"]), "workspace": ws.name}
                 out = await graph.ainvoke(inp, cfg)
                 print(f"[done] {t['title']}: {'OK' if not out.get('feedback') else 'escalated'}", flush=True)
             if a.once:
@@ -107,6 +127,9 @@ def cli():
     p.add_argument("--linear-review", default="In Review", help="state for finished tasks")
     p.add_argument("--linear-blocked", default="Backlog", help="state for tasks the loop gave up on (not polled)")
     p.add_argument("--list-queue", action="store_true", help="print the labelled Linear issues as JSON, then exit")
+    p.add_argument("--chat", action="store_true", help="read-only brainstorming chat over ACP (JSON lines on stdio), in --repo")
+    p.add_argument("--list-projects", action="store_true", help="print Linear projects as JSON, then exit")
+    p.add_argument("--workspaces", default=None, help="workspaces.json: [{name, repo, project_id, enabled}]; replaces --repo")
     p.add_argument("--check", action="store_true", help="read-only Linear setup check, then exit")
     p.add_argument("--repo", default=".")
     p.add_argument("--db", default="looper.db")

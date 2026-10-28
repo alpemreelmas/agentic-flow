@@ -33,6 +33,7 @@ class TaskState(TypedDict, total=False):
     description: str
     verify_cmd: str
     cwd: str
+    workspace: str      # workspace name, shown next to the run in the UI
     feedback: str       # why the last step failed; empty = nothing to fix
     feedback_kind: str  # "verify" | "review" | "agent": decides how the retry prompt is worded
     review_notes: str   # non-blocking findings, passed on to the report
@@ -98,7 +99,7 @@ def build_graph(source, registry, *, runs_dir, agent_override: str | None, max_a
         source.mark_in_progress(s["task_id"])
         run_id = new_run_id(s["task_id"])
         RunLog(runs_dir, run_id).emit("run_start", task_id=s["task_id"], title=s["title"],
-                                      role=s.get("role") or "implementer")
+                                      role=s.get("role") or "implementer", workspace=s.get("workspace", ""))
         # A thread can be re-run (the user moves the issue back to Todo), so reset everything a
         # previous run may have left behind; stale `parked` or `pr_url` would corrupt this run.
         return {"attempts": 0, "feedback": "", "feedback_kind": "", "review_notes": "", "summary": "",

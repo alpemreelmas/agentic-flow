@@ -14,6 +14,7 @@ use std::{
     time::Duration,
 };
 
+mod chat;
 mod config;
 mod service;
 
@@ -201,6 +202,23 @@ fn open_url(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn list_projects() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(service::list_projects).await.map_err(|e| e.to_string())?
+}
+
+/// Native folder picker. Lives here (not in the webview) so the page gets no dialog/fs permission.
+#[tauri::command]
+async fn pick_folder(app: AppHandle) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog().file().blocking_pick_folder().and_then(|p| p.into_path().ok()).map(|p| p.to_string_lossy().into_owned())
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
+#[tauri::command]
 async fn list_queue() -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(service::list_queue).await.map_err(|e| e.to_string())?
 }
@@ -218,8 +236,11 @@ fn stop_service() -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(Watcher::default())
+        .manage(chat::Chats::default())
         .setup(|app| {
+            std::thread::spawn(|| { let _ = service::user_path(); }); // warm the PATH lookup off the UI thread
             use tauri::Manager;
             if let Ok(res) = app.path().resource_dir() {
                 if let Err(e) = service::seed_registry(&res.join("registry")) {
@@ -244,6 +265,16 @@ pub fn run() {
             stop_service,
             check_connection,
             list_queue,
+            chat::chat_start,
+            chat::chat_send,
+            chat::chat_cancel,
+            chat::chat_stop,
+            chat::chat_set_mode,
+            chat::chat_set_config,
+            chat::list_files,
+            list_projects,
+            pick_folder,
+            config::set_active_workspace,
             open_url,
             config::get_config,
             config::set_config,

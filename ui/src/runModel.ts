@@ -29,6 +29,7 @@ export type Item =
       criteria: string[]; risks: string[]; proposedVerify: string }
   | { kind: "deliver"; ok: boolean; url: string; note: string; draft: boolean }
   | { kind: "prompt"; role: string; text: string }
+  | { kind: "user"; text: string }
   | { kind: "message"; text: string }
   | { kind: "thought"; text: string }
   | ToolItem
@@ -44,6 +45,7 @@ export interface Run {
   id: string;
   title: string;
   role: string;
+  workspace: string;
   status: RunStatus;
   startedAt: number;
   endedAt?: number;
@@ -84,7 +86,7 @@ function mergeTool(tool: ToolItem, ev: RunEvent): void {
 export function applyEvent(runs: Map<string, Run>, runId: string, ev: RunEvent): void {
   let run = runs.get(runId);
   if (!run) {
-    run = { id: runId, title: runId, role: "", status: "running", startedAt: ev.ts, items: [] };
+    run = { id: runId, title: runId, role: "", workspace: "", status: "running", startedAt: ev.ts, items: [] };
     runs.set(runId, run);
   }
   const last = run.items[run.items.length - 1];
@@ -92,10 +94,14 @@ export function applyEvent(runs: Map<string, Run>, runId: string, ev: RunEvent):
     case "run_start":
       run.title = str(ev.title, run.title);
       run.role = str(ev.role);
+      run.workspace = str(ev.workspace);
       break;
     case "attempt_start":
       run.status = "running"; // a run resumed after a crash starts a new attempt in the same file
       run.items.push({ kind: "attempt", n: Number(ev.attempt), role: str(ev.role), cli: str(ev.cli) });
+      break;
+    case "user_message":
+      run.items.push({ kind: "user", text: str(ev.text) });
       break;
     case "agent_message":
     case "agent_thought": {

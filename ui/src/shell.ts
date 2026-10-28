@@ -2,7 +2,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { act, html } from "./tpl.ts";
 import { loadQueue } from "./pages/queue.ts";
-import { runs, schedule, ui, type Page } from "./state.ts";
+import { invoke as call } from "@tauri-apps/api/core";
+import { runs, schedule, sortedRuns, ui, type Page } from "./state.ts";
 
 /** Surfaces why the service is down: setup's silent autostart refuses when settings are incomplete. */
 export async function tryStartOnce() {
@@ -81,7 +82,19 @@ export function header(): HTMLElement {
 }
 
 export function sidebar(): HTMLElement {
-  const active = [...runs.values()].filter((r) => r.status === "running").length;
+  const el = sidebarEl();
+  const sel = el.querySelector<HTMLSelectElement>("#ws-switch")!;
+  sel.onchange = () => {
+    ui.activeWorkspace = sel.value;
+    ui.following = true;
+    void call("set_active_workspace", { id: sel.value }).catch(() => {});
+    schedule();
+  };
+  return el;
+}
+
+function sidebarEl(): HTMLElement {
+  const active = sortedRuns().filter((r) => r.status === "running").length;
   const item = (id: Page, icon: string, label: string, badge = "") => html`<a data-act="nav" data-page="${id}" href="#"
       class="flex items-center justify-between px-space-sm py-1.5 rounded transition-colors ${ui.page === id
         ? "bg-surface-container-high text-on-surface font-semibold border-l-2 border-primary"
@@ -96,10 +109,15 @@ export function sidebar(): HTMLElement {
         <span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant">DESKTOP</span>
       </div>
       <div class="px-space-md pt-space-md pb-space-xs"><span class="font-label-sm text-label-sm uppercase text-outline tracking-wider">Çalışma Alanı</span></div>
+      <div class="px-space-sm pb-space-sm"><select id="ws-switch" class="w-full h-8 px-2 rounded bg-surface-container text-on-surface font-body-sm text-body-sm focus:outline-none cursor-pointer">
+        <option value="">Tüm workspace'ler</option>
+        ${ui.workspaces.map((w) => html`<option value="${w.id}" ${w.id === ui.activeWorkspace ? "selected" : ""}>${w.name}${w.enabled ? "" : " (kapalı)"}</option>`)}
+      </select></div>
       <nav class="flex flex-col gap-0.5 px-space-sm">
         ${item("overview", "grid_view", "Genel Bakış")}
         ${item("runs", "play_circle", "Runs", active ? `${active} Aktif` : "")}
         ${item("queue", "queue", "Kuyruk")}
+        ${item("chat", "forum", "Sohbet")}
         ${item("registry", "extension", "Registry")}
         ${item("settings", "tune", "Ayarlar")}
       </nav>
@@ -107,7 +125,7 @@ export function sidebar(): HTMLElement {
     <div class="p-space-sm border-t border-outline-variant/30 bg-surface-container-lowest">
       <div class="px-space-sm py-space-xs rounded bg-surface-container/60 flex flex-col gap-1 border border-outline-variant/20">
         <div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-outline uppercase">Daemon PID</span><span class="font-code-sm text-code-sm text-on-surface font-medium">${ui.service.pid || "—"}</span></div>
-        <div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-outline uppercase">JSONL Stream</span><span class="flex items-center gap-1 font-code-sm text-code-sm text-secondary"><span class="w-1 h-1 rounded-full bg-secondary"></span>${runs.size} run</span></div>
+        <div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-outline uppercase">JSONL Stream</span><span class="flex items-center gap-1 font-code-sm text-code-sm text-secondary"><span class="w-1 h-1 rounded-full bg-secondary"></span>${sortedRuns().length} run</span></div>
         <div class="flex items-center justify-between pt-0.5 border-t border-outline-variant/20"><span class="font-label-sm text-label-sm text-outline uppercase">Sürüm</span><span class="font-code-sm text-code-sm text-on-surface-variant">v0.1.0 (Tauri 2)</span></div>
       </div>
     </div>

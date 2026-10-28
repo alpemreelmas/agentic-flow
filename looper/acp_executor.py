@@ -49,10 +49,39 @@ def _tool_event(kind: str, update) -> dict:
     return ev
 
 
-class _Client(acp.Client):
-    """Our side of the protocol: collect output, answer permission requests."""
+# Tool kinds that only look. Everything else (edit, delete, move, execute, ...) can change something.
+READ_ONLY_KINDS = {"read", "search", "fetch", "think"}
 
-    def __init__(self, auto_approve: bool, quiet: bool, on_event: Callable[[dict], None] | None = None):
+
+def _hint(command) -> str:
+    return getattr(getattr(command.input, "root", command.input), "hint", "") or ""
+
+
+def describe_config(options) -> list[dict]:
+    """Session config options (model, thinking level, ...) as plain dicts for the UI. Grouped
+    select options are flattened; boolean options carry no choices."""
+    out = []
+    for o in options or []:
+        o = getattr(o, "root", o)
+        d = {"id": o.id, "name": o.name, "description": o.description or "", "category": o.category if isinstance(o.category, str) else "",
+             "type": o.type, "value": o.current_value, "choices": []}
+        for ch in getattr(o, "options", None) or []:
+            for leaf in getattr(ch, "options", None) or [ch]:  # a group holds .options; a plain choice is its own leaf
+                d["choices"].append({"value": leaf.value, "name": leaf.name, "description": leaf.description or ""})
+        out.append(d)
+    return out
+
+
+class _Client(acp.Client):
+    """Our side of the protocol: collect output, answer permission requests.
+
+    policy="readonly" (the chat): approve only tool calls of a read-only kind; deny anything else,
+    including calls that don't say what they are.
+    """
+
+    def __init__(self, auto_approve: bool, quiet: bool, on_event: Callable[[dict], None] | None = None,
+                 policy: str = ""):
+        self.policy = policy
         self.auto_approve = auto_approve
         self.quiet = quiet
         self.on_event = on_event or (lambda ev: None)
@@ -61,6 +90,8 @@ class _Client(acp.Client):
     async def request_permission(self, session_id, tool_call, options, **kwargs):
         allow = next((o for o in options if o.kind == "allow_once"), None)
         granted = bool(self.auto_approve and allow)
+        if self.policy == "readonly":
+            granted = bool(allow and getattr(tool_call, "kind", None) in READ_ONLY_KINDS)
         self.on_event({"type": "permission", "title": tool_call.title, "granted": granted})
         if granted:
             self._log(f"  [allow] {tool_call.title}")
@@ -84,6 +115,13 @@ class _Client(acp.Client):
             self.on_event(_tool_event(kind, update))
         elif kind == "plan":
             self.on_event({"type": "plan", "entries": [e.content for e in update.entries]})
+        elif kind == "available_commands_update":
+            self.on_event({"type": "commands", "commands": [
+                {"name": c.name, "description": c.description, "hint": _hint(c)} for c in update.available_commands]})
+        elif kind == "current_mode_update":
+            self.on_event({"type": "mode", "id": update.current_mode_id})
+        elif kind == "config_option_update":
+            self.on_event({"type": "config_options", "options": describe_config(update.config_options)})
 
     def _log(self, msg: str):
         if not self.quiet:

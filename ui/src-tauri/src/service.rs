@@ -118,7 +118,12 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
 
 /// A GUI-launched app gets a minimal PATH (no Homebrew, nvm, ~/.local/bin), so `gh`, `node` and the
 /// agent CLIs would not be found. Ask the user's login shell for the PATH it would give a terminal.
-fn user_path() -> Option<String> {
+pub fn user_path() -> Option<String> {
+    static CACHE: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    CACHE.get_or_init(user_path_uncached).clone()
+}
+
+fn user_path_uncached() -> Option<String> {
     #[cfg(unix)]
     {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
@@ -133,7 +138,8 @@ fn user_path() -> Option<String> {
 }
 
 /// The bundled sidecar next to the app binary when installed; otherwise the dev checkout via uv.
-fn service_command() -> Command {
+/// No arguments yet, but PATH is set so the agent CLIs and `gh` are found.
+pub fn base_command() -> Command {
     let sidecar = std::env::current_exe().ok().and_then(|e| {
         let name = if cfg!(windows) { format!("{SIDECAR}.exe") } else { SIDECAR.to_string() };
         let p = e.parent()?.join(name);
@@ -148,6 +154,14 @@ fn service_command() -> Command {
             c
         }
     };
+    if let Some(p) = user_path() {
+        cmd.env("PATH", p);
+    }
+    cmd
+}
+
+fn service_command() -> Command {
+    let mut cmd = base_command();
     // LOOPER_ARGS (dev/testing) replaces the saved settings wholesale.
     match std::env::var("LOOPER_ARGS") {
         Ok(a) => cmd.args(a.split_whitespace()),
@@ -158,16 +172,22 @@ fn service_command() -> Command {
     if let Some(key) = crate::config::linear_key() {
         cmd.env("LINEAR_API_KEY", key);
     }
-    if let Some(p) = user_path() {
-        cmd.env("PATH", p);
-    }
     cmd
+}
+
+/// Linear projects for the workspace picker (JSON), via the same binary and key.
+pub fn list_projects() -> Result<String, String> {
+    run_json("--list-projects")
 }
 
 /// Read-only snapshot of the labelled Linear issues (JSON), via the same binary, settings and key.
 pub fn list_queue() -> Result<String, String> {
+    run_json("--list-queue")
+}
+
+fn run_json(flag: &str) -> Result<String, String> {
     let mut cmd = service_command();
-    cmd.arg("--list-queue");
+    cmd.arg(flag);
     let out = cmd.output().map_err(|e| e.to_string())?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);

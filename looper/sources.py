@@ -15,6 +15,7 @@ class Task(TypedDict):
     role: NotRequired[str]  # registry role; default implementer
     verified: NotRequired[bool]  # False = no real verification command (draft PR)
     labels: NotRequired[list[str]]
+    project_id: NotRequired[str]  # Linear project; routes the task to a workspace
 
 
 class TaskSource(Protocol):
@@ -93,7 +94,7 @@ class LinearSource:
 
     def fetch_ready(self) -> list[Task]:
         q = """query($states:[String!]){ issues(first:100, filter:{state:{name:{in:$states}}}) {
-                 nodes { id identifier title description team { id } labels { nodes { name } } } } }"""
+                 nodes { id identifier title description team { id } project { id } labels { nodes { name } } } } }"""
         out = []
         for n in self._gql(q, {"states": [self.ready, self.progress]})["issues"]["nodes"]:
             labels = [l["name"] for l in n["labels"]["nodes"]]
@@ -106,13 +107,15 @@ class LinearSource:
                         description=desc, verify=self._verify_cmd(desc), verified="```verify" in desc, labels=labels)
             if role:
                 task["role"] = role
+            if n.get("project"):
+                task["project_id"] = n["project"]["id"]
             out.append(task)
         return out
 
     def list_queue(self) -> list[dict]:
         """Read-only snapshot for the UI: every labelled issue in a state this loop cares about."""
         q = """query($states:[String!]){ issues(first:100, orderBy:updatedAt, filter:{state:{name:{in:$states}}}) {
-                 nodes { id identifier title url updatedAt state { name } labels { nodes { name } } } } }"""
+                 nodes { id identifier title url updatedAt state { name } project { id name } labels { nodes { name } } } } }"""
         states = list(dict.fromkeys([self.ready, self.progress, *self.states.values()]))
         out = []
         for n in self._gql(q, {"states": states})["issues"]["nodes"]:
@@ -120,8 +123,15 @@ class LinearSource:
             if self.label not in labels:
                 continue
             out.append({"id": n["id"], "identifier": n["identifier"], "title": n["title"], "url": n.get("url") or "",
-                        "state": n["state"]["name"], "updated_at": n.get("updatedAt") or "", "labels": labels})
+                        "state": n["state"]["name"], "updated_at": n.get("updatedAt") or "", "labels": labels,
+                        "project_id": (n.get("project") or {}).get("id", ""), "project_name": (n.get("project") or {}).get("name", "")})
         return out
+
+    def list_projects(self) -> list[dict]:
+        """Linear projects that can still receive work, for the workspace picker."""
+        q = """query{ projects(first:100) { nodes { id name state } } }"""
+        return [{"id": p["id"], "name": p["name"], "state": p.get("state") or ""}
+                for p in self._gql(q)["projects"]["nodes"] if p.get("state") not in ("completed", "canceled")]
 
     def _verify_cmd(self, desc: str) -> str:
         if "```verify" in desc:

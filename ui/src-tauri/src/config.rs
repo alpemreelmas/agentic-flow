@@ -10,10 +10,24 @@ use crate::service::data_dir;
 const KEYCHAIN_SERVICE: &str = "dev.linearlooper.app";
 const KEYCHAIN_USER: &str = "linear-api-key";
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct Workspace {
+    pub id: String,
+    pub name: String,
+    pub repo: String,
+    pub project_id: String,
+    pub project_name: String,
+    pub enabled: bool,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(default)]
 pub struct Config {
-    pub repo: String,
+    pub workspaces: Vec<Workspace>,
+    pub active_workspace: String, // id of the workspace the UI shows; "" = all
+    #[serde(skip_serializing)]
+    pub repo: String, // legacy single-repo field: read once, migrated into `workspaces`
     pub label: String,
     pub ready: String,
     pub progress: String,
@@ -31,6 +45,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            workspaces: vec![],
+            active_workspace: String::new(),
             repo: String::new(),
             label: "agent".into(),
             ready: "Todo".into(),
@@ -52,18 +68,13 @@ impl Config {
     /// Rejects what the loop would choke on or what could be mistaken for a flag. Values reach the
     /// service as separate argv entries (no shell), so this is about correctness, not quoting.
     pub fn validate(&self) -> Result<(), String> {
-        for (name, v) in [("repo", &self.repo), ("label", &self.label), ("ready", &self.ready), ("progress", &self.progress),
+        for (name, v) in [("label", &self.label), ("ready", &self.ready), ("progress", &self.progress),
             ("review", &self.review), ("blocked", &self.blocked), ("reviewers", &self.reviewers), ("triage", &self.triage)] {
             if v.starts_with('-') || v.contains('\n') {
                 return Err(format!("{name}: invalid value"));
             }
         }
-        if self.repo.trim().is_empty() {
-            return Err("repo: a local git checkout is required".into());
-        }
-        if !std::path::Path::new(&self.repo).join(".git").exists() {
-            return Err(format!("repo: {} is not a git checkout", self.repo));
-        }
+        self.validate_workspaces()?;
         if !["github", "none"].contains(&self.deliver.as_str()) {
             return Err("deliver: github or none".into());
         }
@@ -79,8 +90,46 @@ impl Config {
         Ok(())
     }
 
+    fn validate_workspaces(&self) -> Result<(), String> {
+        if self.workspaces.is_empty() {
+            return Err("add at least one workspace (a local git checkout)".into());
+        }
+        let many = self.workspaces.len() > 1;
+        for (i, w) in self.workspaces.iter().enumerate() {
+            if w.name.trim().is_empty() || w.name.starts_with('-') || w.repo.starts_with('-') {
+                return Err(format!("workspace {}: invalid name or path", i + 1));
+            }
+            if !std::path::Path::new(&w.repo).join(".git").exists() {
+                return Err(format!("workspace {}: {} is not a git checkout", w.name, w.repo));
+            }
+            if many && w.project_id.is_empty() {
+                return Err(format!("workspace {}: pick a Linear project (needed once there are several workspaces)", w.name));
+            }
+            for o in &self.workspaces[..i] {
+                if o.name == w.name {
+                    return Err(format!("workspace name {} is used twice", w.name));
+                }
+                if o.repo == w.repo {
+                    return Err(format!("{} is already used by workspace {}", w.repo, o.name));
+                }
+                if !w.project_id.is_empty() && o.project_id == w.project_id {
+                    return Err(format!("Linear project {} is mapped to both {} and {}", w.project_name, o.name, w.name));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// What the service reads: it re-reads this file every poll, so edits apply without a restart.
+    pub fn workspaces_json(&self) -> String {
+        let list: Vec<serde_json::Value> = self.workspaces.iter()
+            .map(|w| serde_json::json!({"name": w.name, "repo": w.repo, "project_id": w.project_id, "enabled": w.enabled}))
+            .collect();
+        serde_json::Value::Array(list).to_string()
+    }
+
     pub fn args(&self) -> Vec<String> {
-        let mut a: Vec<String> = ["--source", "linear", "--repo", &self.repo, "--label", &self.label, "--linear-ready", &self.ready,
+        let mut a: Vec<String> = ["--source", "linear", "--workspaces", &workspaces_path().to_string_lossy(), "--label", &self.label, "--linear-ready", &self.ready,
             "--linear-progress", &self.progress, "--linear-review", &self.review, "--linear-blocked", &self.blocked,
             "--deliver", &self.deliver, "--reviewers", &self.reviewers, "--triage", &self.triage]
             .iter().map(|s| s.to_string()).collect();
@@ -97,16 +146,43 @@ fn config_path() -> std::path::PathBuf {
     data_dir().join("config.json")
 }
 
+pub fn workspaces_path() -> std::path::PathBuf {
+    data_dir().join("workspaces.json")
+}
+
 pub fn load() -> Config {
-    fs::read_to_string(config_path()).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
+    let mut c: Config = fs::read_to_string(config_path()).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
+    if c.workspaces.is_empty() && !c.repo.trim().is_empty() {
+        // settings saved before workspaces existed: keep working as one catch-all workspace
+        let name = std::path::Path::new(&c.repo).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "Varsayılan".into());
+        c.workspaces.push(Workspace { id: "ws-default".into(), name, repo: c.repo.clone(), enabled: true, ..Workspace::default() });
+    }
+    c
+}
+
+fn atomic_write(path: &std::path::Path, body: &str) -> Result<(), String> {
+    fs::create_dir_all(path.parent().unwrap()).map_err(|e| e.to_string())?;
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, body).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, path).map_err(|e| e.to_string())
+}
+
+fn write(c: &Config) -> Result<(), String> {
+    atomic_write(&workspaces_path(), &c.workspaces_json())?;
+    atomic_write(&config_path(), &serde_json::to_string_pretty(c).map_err(|e| e.to_string())?)
 }
 
 fn save(c: &Config) -> Result<(), String> {
     c.validate()?;
-    fs::create_dir_all(data_dir()).map_err(|e| e.to_string())?;
-    let tmp = config_path().with_extension("json.tmp");
-    fs::write(&tmp, serde_json::to_string_pretty(c).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
-    fs::rename(&tmp, config_path()).map_err(|e| e.to_string())
+    write(c)
+}
+
+/// Which workspace the UI shows. Not a setting the loop depends on, so no full validation.
+#[tauri::command]
+pub fn set_active_workspace(id: String) -> Result<(), String> {
+    let mut c = load();
+    c.active_workspace = id;
+    write(&c)
 }
 
 fn entry() -> Result<keyring::Entry, String> {
@@ -154,9 +230,14 @@ pub fn clear_linear_key() -> Result<(), String> {
 mod tests {
     use super::*;
 
-    fn valid(dir: &std::path::Path) -> Config {
+    fn ws(dir: &std::path::Path, name: &str, project: &str) -> Workspace {
         fs::create_dir_all(dir.join(".git")).unwrap();
-        Config { repo: dir.to_string_lossy().into(), ..Config::default() }
+        Workspace { id: name.into(), name: name.into(), repo: dir.to_string_lossy().into(), project_id: project.into(),
+            project_name: project.into(), enabled: true }
+    }
+
+    fn valid(dir: &std::path::Path) -> Config {
+        Config { workspaces: vec![ws(dir, "main", "")], ..Config::default() }
     }
 
     #[test]
@@ -165,7 +246,7 @@ mod tests {
         let c = valid(&d);
         assert!(c.validate().is_ok());
         let a = c.args();
-        assert_eq!(&a[..4], ["--source", "linear", "--repo", &c.repo]);
+        assert_eq!(&a[..3], ["--source", "linear", "--workspaces"]);
         assert!(a.windows(2).any(|w| w == ["--linear-blocked", "Backlog"]));
         assert!(!a.contains(&"--agent".to_string()));
     }
@@ -177,13 +258,37 @@ mod tests {
         c.label = "--once".into();
         assert!(c.validate().is_err());
         let mut c = valid(&d);
-        c.repo = "/definitely/not/here".into();
+        c.workspaces[0].repo = "/definitely/not/here".into();
         assert!(c.validate().is_err());
+        assert!(Config::default().validate().is_err()); // no workspace at all
         let mut c = valid(&d);
         c.blocked = c.ready.clone();
         assert!(c.validate().is_err());
         let mut c = valid(&d);
         c.interval = 1;
         assert!(c.validate().is_err());
+    }
+
+    #[test]
+    fn several_workspaces_need_distinct_projects_names_and_repos() {
+        let a = std::env::temp_dir().join("looper-ws-a");
+        let b = std::env::temp_dir().join("looper-ws-b");
+        let mut c = Config { workspaces: vec![ws(&a, "web", "p1"), ws(&b, "api", "p2")], ..Config::default() };
+        assert!(c.validate().is_ok());
+        c.workspaces[1].project_id = "p1".into();
+        assert!(c.validate().unwrap_err().contains("mapped to both"));
+        c.workspaces[1].project_id = String::new();
+        assert!(c.validate().unwrap_err().contains("pick a Linear project"));
+        c.workspaces[1] = ws(&a, "api", "p2");
+        assert!(c.validate().unwrap_err().contains("already used"));
+    }
+
+    #[test]
+    fn workspaces_json_is_what_the_service_reads() {
+        let d = std::env::temp_dir().join("looper-ws-json");
+        let c = Config { workspaces: vec![ws(&d, "web", "p1")], ..Config::default() };
+        let v: serde_json::Value = serde_json::from_str(&c.workspaces_json()).unwrap();
+        assert_eq!(v[0]["project_id"], "p1");
+        assert_eq!(v[0]["enabled"], true);
     }
 }

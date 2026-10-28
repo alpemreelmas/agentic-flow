@@ -1,9 +1,10 @@
 // Shared UI state. Pages read it and call schedule() after changing it.
 import type { Run } from "./runModel.ts";
 
-export type Page = "overview" | "runs" | "queue" | "registry" | "settings";
+export type Page = "overview" | "runs" | "queue" | "chat" | "registry" | "settings";
 export interface ServiceStatus { running: boolean; phase: string; detail: string; pid: number; started_at: number }
 
+export interface Workspace { id: string; name: string; repo: string; project_id: string; project_name: string; enabled: boolean }
 export const runs = new Map<string, Run>();
 export const ui = {
   page: "runs" as Page,
@@ -14,6 +15,8 @@ export const ui = {
   itemFilter: "all" as "all" | "errors" | "tools",
   hideThoughts: false,
   service: { running: false, phase: "stopped", detail: "", pid: 0, started_at: 0 } as ServiceStatus,
+  workspaces: [] as Workspace[],
+  activeWorkspace: "", // workspace id; "" = all
   serviceBusy: false,
   serviceError: "", // why the last start failed (e.g. settings incomplete)
   lastEventAt: 0,
@@ -31,7 +34,10 @@ export function schedule() {
   }
 }
 
-export const sortedRuns = () => [...runs.values()].sort((a, b) => b.startedAt - a.startedAt);
+export const activeWs = () => ui.workspaces.find((w) => w.id === ui.activeWorkspace);
+/** Runs of the selected workspace (all when none is selected). Runs from before workspaces existed have no name and show everywhere. */
+export const inScope = (r: Run) => { const w = activeWs(); return !w || !r.workspace || r.workspace === w.name; };
+export const sortedRuns = () => [...runs.values()].filter(inScope).sort((a, b) => b.startedAt - a.startedAt);
 export const STAGES = ["TRIAGE", "IMPLEMENT", "VERIFY", "REVIEW", "DELIVER"];
 const STAGE_ICON = ["checklist", "code", "fact_check", "rate_review", "rocket_launch"];
 export const stageIcon = (i: number) => STAGE_ICON[i];

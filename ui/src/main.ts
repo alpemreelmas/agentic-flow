@@ -8,10 +8,11 @@ import { applyEvent, type RunEvent } from "./runModel.ts";
 import { runs, schedule, setRenderer, sortedRuns, ui } from "./state.ts";
 import { overviewPage } from "./pages/overview.ts";
 import { queuePage } from "./pages/queue.ts";
+import { chatPage, handleChatEvent } from "./pages/chat.ts";
 import { runsPage } from "./pages/runs.ts";
 import { loadSettings, settingsPage } from "./pages/settings.ts";
 
-const PAGES = { overview: overviewPage, runs: runsPage, queue: queuePage, registry: registryPage, settings: settingsPage };
+const PAGES = { overview: overviewPage, runs: runsPage, queue: queuePage, chat: chatPage, registry: registryPage, settings: settingsPage };
 
 function render() {
   if (ui.following) ui.selected = sortedRuns()[0]?.id ?? null;
@@ -48,6 +49,7 @@ async function main() {
     ui.lastEventAt = Date.now() / 1000;
     schedule();
   });
+  await listen<{ chat_id: string; event: RunEvent }>("chat-event", ({ payload }) => handleChatEvent(payload.chat_id, payload.event));
   // Register the listener first, then start the stream, or the replay would be missed.
   ui.paths.runs = await invoke<string>("default_runs_dir");
   await invoke("start_watch", { runsDir: ui.paths.runs });

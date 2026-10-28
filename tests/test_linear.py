@@ -7,14 +7,17 @@ from looper.sources import LinearSource
 class FakeLinear:
     """Stands in for httpx.post; routes on the GraphQL operation and records every call."""
 
-    def __init__(self, issues=(), states=("Todo", "In Progress", "In Review", "Backlog"), errors=None):
+    def __init__(self, issues=(), states=("Todo", "In Progress", "In Review", "Backlog"), errors=None, projects=()):
         self.issues, self.states, self.errors, self.calls = list(issues), list(states), errors, []
+        self.projects = list(projects)
 
     def post(self, url, json, headers, timeout):
         self.calls.append(json)
         q, v = json["query"], json["variables"]
         if self.errors:
             data = {"errors": self.errors}
+        elif "projects(" in q:
+            data = {"data": {"projects": {"nodes": self.projects}}}
         elif "issues(" in q:
             data = {"data": {"issues": {"nodes": self.issues}}}
         elif "workflowStates" in q:
@@ -114,3 +117,12 @@ def test_list_queue_is_read_only_label_filtered_and_covers_all_states(linear):
     assert q[0]["url"].endswith("ENG-1") and q[1]["labels"] == ["agent", "big"]
     assert fake.calls[0]["variables"]["states"] == ["Todo", "In Progress", "In Review", "Backlog"]
     assert all("mutation" not in c["query"] for c in fake.calls)
+
+
+def test_projects_listed_without_finished_ones_and_tasks_carry_project_id(linear):
+    fake = FakeLinear(projects=[{"id": "p1", "name": "Web", "state": "started"}, {"id": "p2", "name": "Old", "state": "completed"}],
+                      issues=[{**issue("a", ["agent"], n=1), "project": {"id": "p1"}}, issue("b", ["agent"], n=2)])
+    src = linear(fake)
+    assert src.list_projects() == [{"id": "p1", "name": "Web", "state": "started"}]
+    tasks = src.fetch_ready()
+    assert tasks[0]["project_id"] == "p1" and "project_id" not in tasks[1]

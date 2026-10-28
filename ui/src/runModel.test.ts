@@ -114,3 +114,13 @@ test("triage events: stage header, result card, skipped note", () => {
   assert.ok(t.kind === "triage" && t.decision === "needs_approval" && t.plan.length === 2 && t.proposedVerify === "pytest -q");
   assert.deepEqual(run.items[2], { kind: "note", text: "Triage skipped: reply had no parsable JSON block" });
 });
+
+
+test("chat: a user message breaks up the agent message chunks around it", () => {
+  const runs = new Map<string, Run>();
+  const ev = (type: string, text: string) => applyEvent(runs, "c", { ts: 1, type, text });
+  ev("agent_message", "Hel"); ev("agent_message", "lo"); ev("user_message", "thanks"); ev("agent_message", "Sure");
+  const items = runs.get("c")!.items;
+  assert.deepEqual(items.map((i) => i.kind), ["message", "user", "message"]);
+  assert.equal((items[0] as { text: string }).text, "Hello");
+});
