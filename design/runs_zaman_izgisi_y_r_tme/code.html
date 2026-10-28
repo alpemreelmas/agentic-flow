@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="tr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "error-container": "#93000a",
+          "outline": "#908f9e",
+          "inverse-on-surface": "#2f3034",
+          "on-secondary-fixed-variant": "#004e5c",
+          "inverse-primary": "#4854bb",
+          "tertiary": "#ddb7ff",
+          "on-secondary-fixed": "#001f26",
+          "on-primary-fixed": "#000965",
+          "secondary": "#4cd7f6",
+          "secondary-container": "#03b5d3",
+          "outline-variant": "#454652",
+          "surface-tint": "#bdc2ff",
+          "on-primary": "#121f8b",
+          "on-secondary": "#003640",
+          "on-tertiary-fixed-variant": "#6900b3",
+          "surface": "#111317",
+          "on-background": "#e2e2e6",
+          "secondary-fixed-dim": "#4cd7f6",
+          "tertiary-container": "#9b47ea",
+          "on-primary-container": "#fdfaff",
+          "primary-fixed-dim": "#bdc2ff",
+          "on-tertiary": "#490080",
+          "surface-dim": "#111317",
+          "on-surface-variant": "#c6c5d5",
+          "tertiary-fixed-dim": "#ddb7ff",
+          "on-tertiary-container": "#fffafb",
+          "primary-fixed": "#dfe0ff",
+          "primary": "#bdc2ff",
+          "surface-container-low": "#1a1c1f",
+          "surface-variant": "#333538",
+          "inverse-surface": "#e2e2e6",
+          "on-error": "#690005",
+          "background": "#111317",
+          "surface-container-highest": "#333538",
+          "on-error-container": "#ffdad6",
+          "surface-bright": "#37393d",
+          "primary-container": "#5e6ad2",
+          "on-secondary-container": "#00424e",
+          "secondary-fixed": "#acedff",
+          "tertiary-fixed": "#f0dbff",
+          "error": "#ffb4ab",
+          "surface-container": "#1e2023",
+          "surface-container-lowest": "#0c0e11",
+          "on-tertiary-fixed": "#2c0051",
+          "surface-container-high": "#282a2d",
+          "on-primary-fixed-variant": "#2e3aa2",
+          "on-surface": "#e2e2e6"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.125rem",
+          "lg": "0.25rem",
+          "xl": "0.5rem",
+          "full": "0.75rem"
+        },
+        "spacing": {
+          "space-lg": "1rem",
+          "space-md": "0.75rem",
+          "space-sm": "0.5rem",
+          "space-xl": "1.5rem",
+          "space-xs": "0.25rem",
+          "gutter": "0.75rem",
+          "margin": "1rem"
+        },
+        "fontFamily": {
+          "label-md": ["JetBrains Mono"],
+          "headline-lg": ["Inter"],
+          "body-md": ["Inter"],
+          "body-lg": ["Inter"],
+          "code-sm": ["JetBrains Mono"],
+          "body-sm": ["Inter"],
+          "label-sm": ["JetBrains Mono"],
+          "code-md": ["JetBrains Mono"],
+          "code-lg": ["JetBrains Mono"],
+          "headline-md": ["Inter"],
+          "headline-sm": ["Inter"]
+        },
+        "fontSize": {
+          "label-md": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+          "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+          "body-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}],
+          "body-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400"}],
+          "code-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.01em", "fontWeight": "400"}],
+          "body-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400"}],
+          "label-sm": ["10px", {"lineHeight": "12px", "letterSpacing": "0.04em", "fontWeight": "600"}],
+          "code-md": ["12px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}],
+          "code-lg": ["13px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+          "headline-md": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+          "headline-sm": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+        }
+      }
+    }
+  };</script></head><body class="bg-surface font-body-sm text-body-sm text-on-surface antialiased select-none"><header class="fixed top-0 left-0 right-0 h-10 z-50 bg-surface-container-lowest/90 backdrop-blur-md flex items-center justify-between px-space-md border-b border-outline-variant/30"><div class="flex items-center gap-space-md"><div class="flex items-center gap-1.5 pl-space-xs"><div class="w-3 h-3 rounded-full bg-error/80 cursor-pointer hover:opacity-100 transition-opacity"></div><div class="w-3 h-3 rounded-full bg-tertiary-fixed-dim/80 cursor-pointer hover:opacity-100 transition-opacity"></div><div class="w-3 h-3 rounded-full bg-secondary/80 cursor-pointer hover:opacity-100 transition-opacity"></div></div><div class="h-3.5 w-px bg-outline-variant/40 ml-space-xs"></div><div class="flex items-center gap-space-sm"><div class="flex items-center gap-1.5 px-space-xs py-0.5 rounded bg-surface-container-high"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span><span class="font-label-sm text-label-sm text-secondary uppercase">Çalışıyor</span></div><span class="font-code-sm text-code-sm text-on-surface-variant">uptime: 4s 18d</span><span class="text-outline-variant">•</span><span class="font-code-sm text-code-sm text-on-surface-variant">son poll: 12s önce</span></div><div class="flex items-center gap-1 ml-space-xs"><button class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Durdur</button><button class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Yeniden Başlat</button><button class="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-sm text-label-sm transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">sync</span>Şimdi Poll Et</button></div></div><div class="flex items-center gap-space-md"><button class="flex items-center gap-space-sm px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 transition-colors"><span class="material-symbols-outlined text-on-surface-variant text-[14px]">terminal</span><span class="font-code-sm text-code-sm text-on-surface-variant">Komut Paleti</span><kbd class="px-1 rounded bg-surface-container-highest font-code-sm text-code-sm text-on-surface">⌘K</kbd></button><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-secondary-container" title="Stream Senkron"></span><span class="font-code-sm text-code-sm text-on-surface-variant">Canlı</span></div><div class="h-3.5 w-px bg-outline-variant/40"></div><div class="flex items-center gap-space-xs"><button class="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[16px]">dock_to_right</span></button><div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[14px]">person</span></div></div></div></header><aside class="fixed left-0 top-10 bottom-0 w-64 bg-surface-container-lowest z-40 flex flex-col justify-between border-r border-outline-variant/30"><div class="flex flex-col"><div class="h-12 px-space-md flex items-center justify-between border-b border-outline-variant/20"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">all_inclusive</span><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Linear Looper</span></div><span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant">DESKTOP</span></div><div class="px-space-md pt-space-md pb-space-xs"><span class="font-label-sm text-label-sm uppercase text-outline tracking-wider">Çalışma Alanı</span></div><nav class="flex flex-col gap-0.5 px-space-sm" data-active-classes="bg-surface-container-high text-on-surface font-semibold border-l-2 border-primary"><a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="genel-bakis" href="#"><span class="material-symbols-outlined text-[16px]">grid_view</span><span class="font-body-sm text-body-sm">Genel Bakış</span></a><a aria-current="page" class="flex items-center justify-between px-space-sm py-1.5 rounded transition-colors bg-surface-container-high text-on-surface font-semibold border-l-2 border-primary" data-path="runs" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[16px]">play_circle</span><span class="font-body-sm text-body-sm">Runs</span></div><span class="font-label-sm text-label-sm px-1.5 rounded bg-surface-container-highest text-secondary">4 Aktif</span></a><a class="flex items-center justify-between px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="kuyruk" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[16px]">queue</span><span class="font-body-sm text-body-sm">Kuyruk</span></div><span class="font-label-sm text-label-sm px-1.5 rounded bg-surface-container-highest text-on-surface-variant">12</span></a><a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="registry" href="#"><span class="material-symbols-outlined text-[16px]">extension</span><span class="font-body-sm text-body-sm">Registry</span></a><a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="ayarlar" href="#"><span class="material-symbols-outlined text-[16px]">tune</span><span class="font-body-sm text-body-sm">Ayarlar</span></a></nav></div><div class="p-space-sm border-t border-outline-variant/30 bg-surface-container-lowest"><div class="px-space-sm py-space-xs rounded bg-surface-container/60 flex flex-col gap-1 border border-outline-variant/20"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-outline uppercase">Daemon PID</span><span class="font-code-sm text-code-sm text-on-surface font-medium">41802</span></div><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-outline uppercase">JSONL Stream</span><span class="flex items-center gap-1 font-code-sm text-code-sm text-secondary"><span class="w-1 h-1 rounded-full bg-secondary"></span>Sync OK</span></div><div class="flex items-center justify-between pt-0.5 border-t border-outline-variant/20"><span class="font-label-sm text-label-sm text-outline uppercase">Sürüm</span><span class="font-code-sm text-code-sm text-on-surface-variant">v2.4.1 (Tauri 2)</span></div></div></div></aside><div class="pl-64"><main class="relative pt-10 min-h-screen bg-surface"><div class="flex flex-col w-full">
+<div class="flex h-[calc(100vh-2.5rem)] w-full overflow-hidden bg-surface-container-lowest">
+<!-- LEFT PANE: RUNS MASTER LIST (360px fixed) -->
+<aside class="w-[360px] flex-shrink-0 flex flex-col bg-surface-container-lowest select-none">
+<!-- Search & Filters Toolbar -->
+<div class="p-space-md flex flex-col gap-space-sm bg-surface-container-low/60 shadow-sm">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-[16px] pointer-events-none">search</span>
+<input class="w-full h-8 pl-8 pr-8 rounded bg-surface text-on-surface placeholder:text-outline font-body-sm text-body-sm focus:outline-none focus:bg-surface-container transition-colors" placeholder="Görev no, başlık veya model ara..." type="text"/>
+<kbd class="absolute right-2 px-1.5 py-0.5 rounded bg-surface-container-highest font-code-sm text-code-sm text-on-surface-variant">⌘F</kbd>
+</div>
+<div class="flex items-center gap-1.5">
+<div class="relative flex-1">
+<button class="w-full h-7 px-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-between font-label-sm text-label-sm transition-colors">
+<span class="flex items-center gap-1.5 truncate">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span>Durum: Tümü</span>
+</span>
+<span class="material-symbols-outlined text-[14px] text-outline">expand_more</span>
+</button>
+</div>
+<div class="relative flex-1">
+<button class="w-full h-7 px-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-between font-label-sm text-label-sm transition-colors">
+<span class="flex items-center gap-1.5 truncate">
+<span class="material-symbols-outlined text-[12px] text-outline">calendar_today</span>
+<span>Son 24 Saat</span>
+</span>
+<span class="material-symbols-outlined text-[14px] text-outline">expand_more</span>
+</button>
+</div>
+<button class="h-7 w-7 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" title="Filtreleri Sıfırla">
+<span class="material-symbols-outlined text-[14px]">filter_list_off</span>
+</button>
+</div>
+</div>
+<!-- Runs List Scroll Area -->
+<div class="flex-1 overflow-y-auto flex flex-col p-1.5 gap-1">
+<!-- Run Item: LIN-4021 (Selected / Running) -->
+<div class="p-space-sm rounded bg-surface-container-high shadow-md cursor-pointer transition-all flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="font-code-lg text-code-lg text-primary font-semibold tracking-tight">LIN-4021</span>
+<span class="px-1.5 py-0.2 rounded bg-secondary/10 text-secondary font-label-sm text-label-sm">RUNNING</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">timer</span>04m 12s
+            </span>
+</div>
+<h4 class="font-body-md text-body-md text-on-surface font-medium leading-snug line-clamp-2">
+            Refactor Auth Token Cache with Redis fallback
+          </h4>
+<div class="flex items-center justify-between pt-1 text-on-surface-variant font-code-sm text-code-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-primary">smart_toy</span>
+<span class="text-on-surface">CodeForge-Senior</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-secondary font-medium">Implement</span>
+<span>•</span>
+<span>18 olay</span>
+</div>
+</div>
+</div>
+<!-- Run Item: LIN-4019 (Needs Human) -->
+<div class="p-space-sm rounded hover:bg-surface-container/70 bg-surface-container-low/40 cursor-pointer transition-colors flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="h-2 w-2 rounded-full bg-tertiary"></span>
+<span class="font-code-lg text-code-lg text-on-surface font-medium">LIN-4019</span>
+<span class="px-1.5 py-0.2 rounded bg-tertiary/10 text-tertiary font-label-sm text-label-sm">NEEDS HUMAN</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant">48m 10s</span>
+</div>
+<h4 class="font-body-md text-body-md text-on-surface-variant font-normal leading-snug line-clamp-2">
+            Apply Database Schema Migration for User Permission Tiers
+          </h4>
+<div class="flex items-center justify-between pt-1 text-outline font-code-sm text-code-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">database</span>
+<span>DB-Architect</span>
+</div>
+<span>Migration Onayı Bekliyor</span>
+</div>
+</div>
+<!-- Run Item: LIN-4018 (In Review) -->
+<div class="p-space-sm rounded hover:bg-surface-container/70 bg-surface-container-low/40 cursor-pointer transition-colors flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="h-2 w-2 rounded-full bg-tertiary-container"></span>
+<span class="font-code-lg text-code-lg text-on-surface font-medium">LIN-4018</span>
+<span class="px-1.5 py-0.2 rounded bg-tertiary-container/20 text-tertiary font-label-sm text-label-sm">IN REVIEW</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant">18m 05s</span>
+</div>
+<h4 class="font-body-md text-body-md text-on-surface-variant font-normal leading-snug line-clamp-2">
+            Synthesize Realtime Telemetry WebSocket Protocol
+          </h4>
+<div class="flex items-center justify-between pt-1 text-outline font-code-sm text-code-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">hub</span>
+<span>NetProbe</span>
+</div>
+<span>PR Hazırlandı</span>
+</div>
+</div>
+<!-- Run Item: LIN-4015 (Completed) -->
+<div class="p-space-sm rounded hover:bg-surface-container/70 bg-surface-container-low/40 cursor-pointer transition-colors flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="h-2 w-2 rounded-full bg-secondary-container"></span>
+<span class="font-code-lg text-code-lg text-on-surface font-medium">LIN-4015</span>
+<span class="px-1.5 py-0.2 rounded bg-secondary-container/20 text-secondary font-label-sm text-label-sm">COMPLETED</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant">18m</span>
+</div>
+<h4 class="font-body-md text-body-md text-on-surface-variant font-normal leading-snug line-clamp-2">
+            Audit Cryptographic Hash Iterations in PKCS#5
+          </h4>
+<div class="flex items-center justify-between pt-1 text-outline font-code-sm text-code-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">shield</span>
+<span>SecOps</span>
+</div>
+<span class="text-secondary font-medium">PR #1289 Merge Edildi</span>
+</div>
+</div>
+<!-- Run Item: LIN-4012 (Failed) -->
+<div class="p-space-sm rounded hover:bg-surface-container/70 bg-surface-container-low/40 cursor-pointer transition-colors flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="h-2 w-2 rounded-full bg-error"></span>
+<span class="font-code-lg text-code-lg text-on-surface font-medium">LIN-4012</span>
+<span class="px-1.5 py-0.2 rounded bg-error-container/30 text-error font-label-sm text-label-sm">FAILED</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant">11m 40s</span>
+</div>
+<h4 class="font-body-md text-body-md text-on-surface-variant font-normal leading-snug line-clamp-2">
+            Fix CSS overflow in Billing modal
+          </h4>
+<div class="flex items-center justify-between pt-1 text-outline font-code-sm text-code-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">palette</span>
+<span>FrontendArchitect</span>
+</div>
+<span class="text-error font-medium">Lint Hata Döndürdü</span>
+</div>
+</div>
+</div>
+<!-- List Footer Stats -->
+<div class="p-space-sm bg-surface-container-low/80 flex items-center justify-between font-label-sm text-label-sm text-outline">
+<span>5 / 42 Aktif Run</span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 1 Koşuyor
+        </span>
+</div>
+</aside>
+<!-- RIGHT PANE: SELECTED RUN TIMELINE (EXECUTION CANVAS) -->
+<section class="flex-1 flex flex-col min-w-0 bg-surface overflow-hidden">
+<!-- Top Stage Bar & Actions Header -->
+<div class="flex flex-col bg-surface-container-low/40 shadow-sm">
+<!-- Header Info & Actions Toolbar -->
+<div class="h-12 px-space-lg flex items-center justify-between gap-space-md">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-headline-md text-headline-md text-on-surface tracking-tight font-semibold flex items-center gap-2 truncate">
+<span class="text-primary font-code-lg">LIN-4021</span>
+<span>Refactor Auth Token Cache with Redis fallback</span>
+</span>
+<span class="flex-shrink-0 px-2 py-0.5 rounded bg-secondary/10 text-secondary font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+              AKTİF ADIM: IMPLEMENT
+            </span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<button class="h-7 px-2.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[14px]">merge</span>
+<span>PR'ı Aç (#1292)</span>
+</button>
+<button class="h-7 px-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+<span>Linear'da Aç</span>
+</button>
+<button class="h-7 px-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[14px]">data_object</span>
+<span>JSONL</span>
+</button>
+<button class="h-7 px-2.5 rounded bg-primary-container text-on-primary-container font-body-sm text-body-sm flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[14px]">replay</span>
+<span>Yeniden Çalıştır <kbd class="opacity-70 font-code-sm">⌘R</kbd></span>
+</button>
+</div>
+</div>
+<!-- Stage Pipeline Stepper -->
+<div class="px-space-lg py-2 flex items-center gap-2 bg-surface-container-lowest/50 overflow-x-auto">
+<!-- Step 1: Triage (Done) -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary-container/15 text-secondary font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>1. TRIAGE</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[14px]">chevron_right</span>
+</div>
+<!-- Step 2: Implement (Active) -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-secondary text-on-secondary font-label-md text-label-md shadow-sm">
+<span class="w-2 h-2 rounded-full bg-on-secondary animate-ping"></span>
+<span>2. IMPLEMENT (AKTİF)</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[14px]">chevron_right</span>
+</div>
+<!-- Step 3: Verify (Pending) -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container text-outline font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">pending</span>
+<span>3. VERIFY</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[14px]">chevron_right</span>
+</div>
+<!-- Step 4: Review (Pending) -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container text-outline font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">rate_review</span>
+<span>4. REVIEW</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[14px]">chevron_right</span>
+</div>
+<!-- Step 5: Deliver (Pending) -->
+<div class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container text-outline font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">rocket_launch</span>
+<span>5. DELIVER</span>
+</div>
+</div>
+<!-- Filter Chips Bar -->
+<div class="px-space-lg py-2 flex items-center justify-between bg-surface-container-low/20">
+<div class="flex items-center gap-1.5">
+<button class="px-2.5 py-0.5 rounded bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+              Tüm Olaylar (18)
+            </button>
+<button class="px-2.5 py-0.5 rounded bg-surface-container/60 hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm transition-colors">
+              Yalnızca Hatalar (0)
+            </button>
+<button class="px-2.5 py-0.5 rounded bg-surface-container/60 hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm transition-colors">
+              Araç Çağrıları (6)
+            </button>
+<button class="px-2.5 py-0.5 rounded bg-surface-container/60 hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm transition-colors">
+              Düşünceleri Gizle
+            </button>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-code-sm text-code-sm text-outline">Loop İterasyonu: #3 / 8</span>
+<button class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-secondary font-label-sm text-label-sm flex items-center gap-1 transition-colors" id="scrollToLive">
+<span class="material-symbols-outlined text-[12px]">vertical_align_bottom</span>
+<span>Canlıya Git</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Execution Timeline Scroll Area -->
+<div class="flex-1 overflow-y-auto p-space-lg flex flex-col gap-space-lg relative" id="timelineScrollArea">
+<!-- EVENT 1: TRIAGE KARTI (Collapsible / Expanded) -->
+<div class="flex gap-3 relative">
+<div class="flex flex-col items-center flex-shrink-0">
+<div class="w-6 h-6 rounded-full bg-secondary-container/20 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">checklist</span>
+</div>
+<div class="w-0.5 h-full bg-surface-container-high my-1"></div>
+</div>
+<div class="flex-1 rounded bg-surface-container-low shadow-sm overflow-hidden">
+<div class="p-space-sm bg-surface-container/70 flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-secondary">STAGE_TRIAGE_APPROVED</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">00:02.14</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-outline">expand_less</span>
+</div>
+<div class="p-space-md grid grid-cols-4 gap-space-md bg-surface-container-low font-body-sm text-body-sm">
+<div class="flex flex-col gap-0.5">
+<span class="font-label-sm text-label-sm text-outline uppercase">Otonom Karar</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Onaylandı (Autonomous)
+                </span>
+</div>
+<div class="flex flex-col gap-0.5">
+<span class="font-label-sm text-label-sm text-outline uppercase">Tahmini Boyut</span>
+<span class="font-body-md text-body-md text-on-surface">Medium (M) • ~4 Adım</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<span class="font-label-sm text-label-sm text-outline uppercase">Kabul Kriteri</span>
+<span class="font-code-sm text-code-sm text-secondary truncate">Redis failover &lt;300ms</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<span class="font-label-sm text-label-sm text-outline uppercase">Risk Derecesi</span>
+<span class="font-body-md text-body-md text-on-surface">Düşük (Side-effect safe)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- EVENT 2: AJAN DÜŞÜNCESİ (Claude CLI / ACP Reasoning) -->
+<div class="flex gap-3 relative">
+<div class="flex flex-col items-center flex-shrink-0">
+<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+</div>
+<div class="w-0.5 h-full bg-surface-container-high my-1"></div>
+</div>
+<div class="flex-1 rounded bg-surface-container-low/70 p-space-md flex flex-col gap-1.5 shadow-sm">
+<div class="flex items-center justify-between text-outline">
+<div class="flex items-center gap-1.5">
+<span class="font-label-md text-label-md text-primary font-medium">ACP::AgentReasoning</span>
+<span class="font-code-sm text-code-sm">claude-3-7-sonnet</span>
+</div>
+<span class="font-code-sm text-code-sm">01:14.80</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed italic bg-surface-container-lowest/60 p-2.5 rounded">
+              “Hypothesis: Expired JWT tokens continue to authenticate if Redis replica replication lags. Implementing local in-memory LRU cache with sync fallback before hitting persistent store.”
+            </p>
+</div>
+</div>
+<!-- EVENT 3: TOOL CALL: file_search -->
+<div class="flex gap-3 relative">
+<div class="flex flex-col items-center flex-shrink-0">
+<div class="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+</div>
+<div class="w-0.5 h-full bg-surface-container-high my-1"></div>
+</div>
+<div class="flex-1 rounded bg-surface-container-lowest shadow-sm overflow-hidden">
+<div class="px-space-md py-2 bg-surface-container flex items-center justify-between font-code-sm text-code-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-secondary">play_arrow</span>
+<span class="text-secondary font-medium">tool_call:</span>
+<span class="text-on-surface">file_search(pattern: "tokenCache.ts")</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-outline">184ms</span>
+<span class="material-symbols-outlined text-[16px] text-outline">expand_less</span>
+</div>
+</div>
+<div class="p-space-sm font-code-sm text-code-sm text-on-surface-variant flex flex-col gap-1 bg-surface-container-lowest">
+<div class="text-outline uppercase font-label-sm text-label-sm">3 eşleşme bulundu:</div>
+<div class="pl-2 flex flex-col gap-0.5 text-on-surface">
+<span>• src/services/auth/tokenCache.ts</span>
+<span>• src/services/auth/__tests__/tokenCache.spec.ts</span>
+<span>• src/config/tokenCache.config.ts</span>
+</div>
+</div>
+</div>
+</div>
+<!-- EVENT 4: TOOL CALL: code_edit ile SATIR İÇİ RENKLİ DİFF -->
+<div class="flex gap-3 relative">
+<div class="flex flex-col items-center flex-shrink-0">
+<div class="w-6 h-6 rounded-full bg-secondary-container/30 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+</div>
+<div class="w-0.5 h-full bg-surface-container-high my-1"></div>
+</div>
+<div class="flex-1 rounded bg-surface-container-lowest shadow-md overflow-hidden">
+<!-- Diff Header -->
+<div class="px-space-md py-2 bg-surface-container flex items-center justify-between">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-[16px] text-primary">description</span>
+<span class="font-code-md text-code-md text-on-surface font-medium truncate">src/services/auth/tokenCache.ts</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-highest text-secondary font-code-sm text-code-sm">+14</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-highest text-error font-code-sm text-code-sm">-4</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[12px]">content_copy</span> Kopyala
+                </button>
+<span class="material-symbols-outlined text-[16px] text-outline">unfold_less</span>
+</div>
+</div>
+<!-- Diff Content View -->
+<div class="font-code-sm text-code-sm overflow-x-auto select-text bg-[#090a0d]">
+<!-- Context Line -->
+<div class="flex items-center py-0.5 px-2 hover:bg-surface-container/20">
+<span class="w-10 text-right pr-3 text-outline select-none">41</span>
+<span class="w-10 text-right pr-3 text-outline select-none">41</span>
+<span class="w-4 select-none text-outline"> </span>
+<span class="text-on-surface-variant pl-2">export class TokenCacheManager {</span>
+</div>
+<div class="flex items-center py-0.5 px-2 hover:bg-surface-container/20">
+<span class="w-10 text-right pr-3 text-outline select-none">42</span>
+<span class="w-10 text-right pr-3 text-outline select-none">42</span>
+<span class="w-4 select-none text-outline"> </span>
+<span class="text-on-surface-variant pl-2">  private redisClient: RedisCluster;</span>
+</div>
+<!-- Deletion Lines (Red) -->
+<div class="flex items-center py-0.5 px-2 bg-error-container/20 text-error">
+<span class="w-10 text-right pr-3 text-error select-none">43</span>
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-4 select-none font-bold text-error">-</span>
+<span class="pl-2">  async get(key: string): Promise&lt;string | null&gt; {</span>
+</div>
+<div class="flex items-center py-0.5 px-2 bg-error-container/20 text-error">
+<span class="w-10 text-right pr-3 text-error select-none">44</span>
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-4 select-none font-bold text-error">-</span>
+<span class="pl-2">    return await this.redisClient.get(key);</span>
+</div>
+<!-- Addition Lines (Green) -->
+<div class="flex items-center py-0.5 px-2 bg-secondary-container/20 text-secondary">
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-10 text-right pr-3 text-secondary select-none">43</span>
+<span class="w-4 select-none font-bold text-secondary">+</span>
+<span class="pl-2">  private localLru = new QuickLRU&lt;string, string&gt;({ maxSize: 10_000 });</span>
+</div>
+<div class="flex items-center py-0.5 px-2 bg-secondary-container/20 text-secondary">
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-10 text-right pr-3 text-secondary select-none">44</span>
+<span class="w-4 select-none font-bold text-secondary">+</span>
+<span class="pl-2">  async get(key: string): Promise&lt;string | null&gt; {</span>
+</div>
+<div class="flex items-center py-0.5 px-2 bg-secondary-container/20 text-secondary">
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-10 text-right pr-3 text-secondary select-none">45</span>
+<span class="w-4 select-none font-bold text-secondary">+</span>
+<span class="pl-2">    const cached = this.localLru.get(key);</span>
+</div>
+<div class="flex items-center py-0.5 px-2 bg-secondary-container/20 text-secondary">
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-10 text-right pr-3 text-secondary select-none">46</span>
+<span class="w-4 select-none font-bold text-secondary">+</span>
+<span class="pl-2">    if (cached) return cached;</span>
+</div>
+<div class="flex items-center py-0.5 px-2 bg-secondary-container/20 text-secondary">
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-10 text-right pr-3 text-secondary select-none">47</span>
+<span class="w-4 select-none font-bold text-secondary">+</span>
+<span class="pl-2">    const remote = await this.redisClient.get(key);</span>
+</div>
+<div class="flex items-center py-0.5 px-2 bg-secondary-container/20 text-secondary">
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-10 text-right pr-3 text-secondary select-none">48</span>
+<span class="w-4 select-none font-bold text-secondary">+</span>
+<span class="pl-2">    if (remote) this.localLru.set(key, remote);</span>
+</div>
+<div class="flex items-center py-0.5 px-2 bg-secondary-container/20 text-secondary">
+<span class="w-10 text-right pr-3 select-none"></span>
+<span class="w-10 text-right pr-3 text-secondary select-none">49</span>
+<span class="w-4 select-none font-bold text-secondary">+</span>
+<span class="pl-2">    return remote;</span>
+</div>
+<!-- Context Line -->
+<div class="flex items-center py-0.5 px-2 hover:bg-surface-container/20">
+<span class="w-10 text-right pr-3 text-outline select-none">45</span>
+<span class="w-10 text-right pr-3 text-outline select-none">50</span>
+<span class="w-4 select-none text-outline"> </span>
+<span class="text-on-surface-variant pl-2">  }</span>
+</div>
+</div>
+</div>
+</div>
+<!-- EVENT 5: CANLI TERMİNAL KONSOLU (AKTİF / bash_exec) -->
+<div class="flex gap-3 relative pb-6" id="liveNode">
+<div class="flex flex-col items-center flex-shrink-0">
+<div class="w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+</div>
+</div>
+<div class="flex-1 rounded bg-[#07080b] shadow-xl overflow-hidden flex flex-col">
+<!-- Terminal Title Bar -->
+<div class="px-space-md py-2 bg-surface-container flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-code-md text-code-md text-on-surface font-semibold">bash_exec: pnpm test -- tokenCache.spec.ts</span>
+</div>
+<div class="flex items-center gap-3 font-code-sm text-code-sm">
+<span class="text-secondary font-medium">poll: 300ms</span>
+<span class="text-outline">PID: 41920</span>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[16px]">fullscreen</span>
+</button>
+</div>
+</div>
+<!-- Terminal Output Stream -->
+<div class="p-space-md font-code-sm text-code-sm text-on-surface-variant flex flex-col gap-1 leading-relaxed select-text overflow-x-auto">
+<div class="text-outline font-medium">&gt; auth-service@2.4.0 test /workspace/services/auth</div>
+<div class="text-outline">&gt; vitest run tokenCache.spec.ts</div>
+<div class="pt-2">RUN  v1.6.0 /workspace/services/auth</div>
+<div class="flex items-center gap-2 text-secondary">
+<span>✓</span>
+<span>src/services/auth/__tests__/tokenCache.spec.ts (6 tests)</span>
+<span class="text-outline">82ms</span>
+</div>
+<div class="pl-4 text-on-surface">
+<div>✓ should initialize fast LRU cache with 10k capacity</div>
+<div>✓ returns cache hit instantly before touching redis</div>
+<div>✓ falls back to redisCluster.get on miss and populates local</div>
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[13px] animate-spin">refresh</span>
+<span>evaluating redis partition failover simulation (&lt;300ms limit)...</span>
+</div>
+</div>
+<div class="mt-2 pt-2 bg-surface-container-high/40 p-2 rounded flex items-center justify-between">
+<span class="text-secondary font-medium flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 
+                  JSONL Stream Sync Aktif • 300ms Heartbeat
+                </span>
+<span class="text-outline font-code-sm text-code-sm">Toplam 2420 bayt akıtıldı</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Sticky Status Rail -->
+<div class="h-9 px-space-lg bg-surface-container-lowest flex items-center justify-between text-outline font-code-sm text-code-sm select-none shadow-inner">
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1.5 text-secondary font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span>JSONL CANLI AKIŞ: SYNCED</span>
+</span>
+<span>•</span>
+<span>Ajan: Claude Sonnet 3.7</span>
+<span>•</span>
+<span>Son Paket: 142ms önce</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-label-sm text-label-sm hover:opacity-90 flex items-center gap-1 transition-opacity" id="stickyLiveBtn">
+<span class="material-symbols-outlined text-[13px]">play_circle</span>
+<span>Canlıya Dön</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+<script>
+  (function() {
+    const scrollContainer = document.getElementById('timelineScrollArea');
+    const liveNode = document.getElementById('liveNode');
+    const scrollToLiveBtn = document.getElementById('scrollToLive');
+    const stickyLiveBtn = document.getElementById('stickyLiveBtn');
+
+    function jumpToLive() {
+      if (liveNode && scrollContainer) {
+        liveNode.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }
+
+    if (scrollToLiveBtn) scrollToLiveBtn.addEventListener('click', jumpToLive);
+    if (stickyLiveBtn) stickyLiveBtn.addEventListener('click', jumpToLive);
+  })();
+</script></main></div></body></html>

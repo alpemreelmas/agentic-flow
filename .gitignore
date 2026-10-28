@@ -1,0 +1,37 @@
+# secrets and local config
+.env
+.env.*
+*.pem
+*.key
+
+# runtime data
+runs/
+*.db
+*.db-journal
+.looper/
+.worktrees/
+config.json
+
+# local sandbox repo (its own git clone)
+sandbox/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# pyinstaller
+build/
+dist/
+*.spec
+
+# ui
+ui/node_modules/
+ui/dist/
+ui/src-tauri/target/
+ui/src-tauri/gen/
+ui/src-tauri/binaries/
+
+.DS_Store
+design/*/screen.png

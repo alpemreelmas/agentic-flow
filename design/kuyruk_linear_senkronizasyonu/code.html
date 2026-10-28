@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="tr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "error-container": "#93000a",
+          "outline": "#908f9e",
+          "inverse-on-surface": "#2f3034",
+          "on-secondary-fixed-variant": "#004e5c",
+          "inverse-primary": "#4854bb",
+          "tertiary": "#ddb7ff",
+          "on-secondary-fixed": "#001f26",
+          "on-primary-fixed": "#000965",
+          "secondary": "#4cd7f6",
+          "secondary-container": "#03b5d3",
+          "outline-variant": "#454652",
+          "surface-tint": "#bdc2ff",
+          "on-primary": "#121f8b",
+          "on-secondary": "#003640",
+          "on-tertiary-fixed-variant": "#6900b3",
+          "surface": "#111317",
+          "on-background": "#e2e2e6",
+          "secondary-fixed-dim": "#4cd7f6",
+          "tertiary-container": "#9b47ea",
+          "on-primary-container": "#fdfaff",
+          "primary-fixed-dim": "#bdc2ff",
+          "on-tertiary": "#490080",
+          "surface-dim": "#111317",
+          "on-surface-variant": "#c6c5d5",
+          "tertiary-fixed-dim": "#ddb7ff",
+          "on-tertiary-container": "#fffafb",
+          "primary-fixed": "#dfe0ff",
+          "primary": "#bdc2ff",
+          "surface-container-low": "#1a1c1f",
+          "surface-variant": "#333538",
+          "inverse-surface": "#e2e2e6",
+          "on-error": "#690005",
+          "background": "#111317",
+          "surface-container-highest": "#333538",
+          "on-error-container": "#ffdad6",
+          "surface-bright": "#37393d",
+          "primary-container": "#5e6ad2",
+          "on-secondary-container": "#00424e",
+          "secondary-fixed": "#acedff",
+          "tertiary-fixed": "#f0dbff",
+          "error": "#ffb4ab",
+          "surface-container": "#1e2023",
+          "surface-container-lowest": "#0c0e11",
+          "on-tertiary-fixed": "#2c0051",
+          "surface-container-high": "#282a2d",
+          "on-primary-fixed-variant": "#2e3aa2",
+          "on-surface": "#e2e2e6"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.125rem",
+          "lg": "0.25rem",
+          "xl": "0.5rem",
+          "full": "0.75rem"
+        },
+        "spacing": {
+          "space-lg": "1rem",
+          "space-md": "0.75rem",
+          "space-sm": "0.5rem",
+          "space-xl": "1.5rem",
+          "space-xs": "0.25rem",
+          "gutter": "0.75rem",
+          "margin": "1rem"
+        },
+        "fontFamily": {
+          "label-md": ["JetBrains Mono"],
+          "headline-lg": ["Inter"],
+          "body-md": ["Inter"],
+          "body-lg": ["Inter"],
+          "code-sm": ["JetBrains Mono"],
+          "body-sm": ["Inter"],
+          "label-sm": ["JetBrains Mono"],
+          "code-md": ["JetBrains Mono"],
+          "code-lg": ["JetBrains Mono"],
+          "headline-md": ["Inter"],
+          "headline-sm": ["Inter"]
+        },
+        "fontSize": {
+          "label-md": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+          "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+          "body-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}],
+          "body-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400"}],
+          "code-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.01em", "fontWeight": "400"}],
+          "body-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400"}],
+          "label-sm": ["10px", {"lineHeight": "12px", "letterSpacing": "0.04em", "fontWeight": "600"}],
+          "code-md": ["12px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}],
+          "code-lg": ["13px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+          "headline-md": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+          "headline-sm": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+        }
+      }
+    }
+  };</script></head><body class="bg-surface font-body-sm text-body-sm text-on-surface antialiased select-none"><header class="fixed top-0 left-0 right-0 h-10 z-50 bg-surface-container-lowest/90 backdrop-blur-md flex items-center justify-between px-space-md border-b border-outline-variant/30"><div class="flex items-center gap-space-md"><div class="flex items-center gap-1.5 pl-space-xs"><div class="w-3 h-3 rounded-full bg-error/80 cursor-pointer hover:opacity-100 transition-opacity"></div><div class="w-3 h-3 rounded-full bg-tertiary-fixed-dim/80 cursor-pointer hover:opacity-100 transition-opacity"></div><div class="w-3 h-3 rounded-full bg-secondary/80 cursor-pointer hover:opacity-100 transition-opacity"></div></div><div class="h-3.5 w-px bg-outline-variant/40 ml-space-xs"></div><div class="flex items-center gap-space-sm"><div class="flex items-center gap-1.5 px-space-xs py-0.5 rounded bg-surface-container-high"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span><span class="font-label-sm text-label-sm text-secondary uppercase">Çalışıyor</span></div><span class="font-code-sm text-code-sm text-on-surface-variant">uptime: 4s 18d</span><span class="text-outline-variant">•</span><span class="font-code-sm text-code-sm text-on-surface-variant">son poll: 12s önce</span></div><div class="flex items-center gap-1 ml-space-xs"><button class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Durdur</button><button class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Yeniden Başlat</button><button class="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-sm text-label-sm transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">sync</span>Şimdi Poll Et</button></div></div><div class="flex items-center gap-space-md"><button class="flex items-center gap-space-sm px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 transition-colors"><span class="material-symbols-outlined text-on-surface-variant text-[14px]">terminal</span><span class="font-code-sm text-code-sm text-on-surface-variant">Komut Paleti</span><kbd class="px-1 rounded bg-surface-container-highest font-code-sm text-code-sm text-on-surface">⌘K</kbd></button><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-secondary-container" title="Stream Senkron"></span><span class="font-code-sm text-code-sm text-on-surface-variant">Canlı</span></div><div class="h-3.5 w-px bg-outline-variant/40"></div><div class="flex items-center gap-space-xs"><button class="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[16px]">dock_to_right</span></button><div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[14px]">person</span></div></div></div></header><aside class="fixed left-0 top-10 bottom-0 w-64 bg-surface-container-lowest z-40 flex flex-col justify-between border-r border-outline-variant/30"><div class="flex flex-col"><div class="h-12 px-space-md flex items-center justify-between border-b border-outline-variant/20"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">all_inclusive</span><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Linear Looper</span></div><span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant">DESKTOP</span></div><div class="px-space-md pt-space-md pb-space-xs"><span class="font-label-sm text-label-sm uppercase text-outline tracking-wider">Çalışma Alanı</span></div><nav class="flex flex-col gap-0.5 px-space-sm" data-active-classes="bg-surface-container-high text-on-surface font-semibold border-l-2 border-primary"><a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="genel-bakis" href="#"><span class="material-symbols-outlined text-[16px]">grid_view</span><span class="font-body-sm text-body-sm">Genel Bakış</span></a><a class="flex items-center justify-between px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="runs" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[16px]">play_circle</span><span class="font-body-sm text-body-sm">Runs</span></div><span class="font-label-sm text-label-sm px-1.5 rounded bg-surface-container-highest text-secondary">4 Aktif</span></a><a aria-current="page" class="flex items-center justify-between px-space-sm py-1.5 rounded transition-colors bg-surface-container-high text-on-surface font-semibold border-l-2 border-primary" data-path="kuyruk" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[16px]">queue</span><span class="font-body-sm text-body-sm">Kuyruk</span></div><span class="font-label-sm text-label-sm px-1.5 rounded bg-surface-container-highest text-on-surface-variant">12</span></a><a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="registry" href="#"><span class="material-symbols-outlined text-[16px]">extension</span><span class="font-body-sm text-body-sm">Registry</span></a><a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="ayarlar" href="#"><span class="material-symbols-outlined text-[16px]">tune</span><span class="font-body-sm text-body-sm">Ayarlar</span></a></nav></div><div class="p-space-sm border-t border-outline-variant/30 bg-surface-container-lowest"><div class="px-space-sm py-space-xs rounded bg-surface-container/60 flex flex-col gap-1 border border-outline-variant/20"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-outline uppercase">Daemon PID</span><span class="font-code-sm text-code-sm text-on-surface font-medium">41802</span></div><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-outline uppercase">JSONL Stream</span><span class="flex items-center gap-1 font-code-sm text-code-sm text-secondary"><span class="w-1 h-1 rounded-full bg-secondary"></span>Sync OK</span></div><div class="flex items-center justify-between pt-0.5 border-t border-outline-variant/20"><span class="font-label-sm text-label-sm text-outline uppercase">Sürüm</span><span class="font-code-sm text-code-sm text-on-surface-variant">v2.4.1 (Tauri 2)</span></div></div></div></aside><div class="pl-64"><main class="relative pt-10 min-h-screen bg-surface"><div class="flex flex-col w-full">
+<!-- Interactive & Density Context Wrapper -->
+<div class="flex flex-col gap-space-lg p-space-lg max-w-[1680px] mx-auto w-full">
+<!-- Top Command Strip & Linear Context -->
+<header class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md p-space-md rounded-xl bg-surface-container-low shadow-sm">
+<div class="flex flex-wrap items-center gap-space-md">
+<div class="flex items-center gap-space-sm px-space-sm py-1 rounded-lg bg-surface-container">
+<div class="w-6 h-6 rounded bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[16px]">sync_alt</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Workspace</span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Acme Core Engine</span>
+</div>
+</div>
+<div class="h-6 w-px bg-outline-variant/40 hidden sm:block"></div>
+<div class="flex items-center gap-space-sm font-label-md text-label-md text-on-surface-variant">
+<span class="inline-flex w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span>Son senkronizasyon: <strong class="text-on-surface font-code-sm">12 sn önce</strong></span>
+<span class="text-outline-variant">•</span>
+<span class="font-code-sm text-code-sm text-secondary">ACP Poller v3.1</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="hidden md:flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container font-code-sm text-code-sm text-on-surface-variant">
+<kbd class="px-1.5 py-0.5 rounded bg-surface-container-highest text-primary font-bold">J</kbd>
+<kbd class="px-1.5 py-0.5 rounded bg-surface-container-highest text-primary font-bold">K</kbd>
+<span class="text-outline">Gezin</span>
+<span class="text-outline-variant mx-1">|</span>
+<kbd class="px-1.5 py-0.5 rounded bg-surface-container-highest text-primary font-bold">⏎</kbd>
+<span class="text-outline">Çalıştır</span>
+</div>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary font-body-sm text-body-sm font-medium hover:bg-primary-container transition-all active:scale-95 shadow-sm" id="sync-trigger">
+<span class="material-symbols-outlined text-[16px] transition-transform duration-700" id="sync-icon">refresh</span>
+<span>Şimdi Senkronize Et</span>
+</button>
+</div>
+</header>
+<!-- Filter Tab Bar & Real-time Metrics -->
+<div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-space-sm">
+<!-- Segmented Pill Filter Bar -->
+<div class="flex items-center gap-1 p-1 rounded-xl bg-surface-container-lowest overflow-x-auto">
+<button class="queue-filter active flex items-center gap-2 px-3 py-1 rounded-lg bg-surface-container-high text-on-surface font-body-sm text-body-sm font-medium transition-colors" data-filter="all">
+<span>Hepsi</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-highest font-code-sm text-code-sm text-primary">24</span>
+</button>
+<button class="queue-filter flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-filter="inprogress">
+<span>In Progress</span>
+<span class="px-1.5 py-0.2 rounded bg-secondary/15 font-code-sm text-code-sm text-secondary">3</span>
+</button>
+<button class="queue-filter flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-filter="todo">
+<span>Todo</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-highest font-code-sm text-code-sm text-on-surface-variant">8</span>
+</button>
+<button class="queue-filter flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-filter="inreview">
+<span>In Review</span>
+<span class="px-1.5 py-0.2 rounded bg-tertiary-container/30 font-code-sm text-code-sm text-tertiary">4</span>
+</button>
+<button class="queue-filter flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-filter="parked">
+<span>Backlog / Parked</span>
+<span class="px-1.5 py-0.2 rounded bg-error-container/40 font-code-sm text-code-sm text-error">9</span>
+</button>
+</div>
+<!-- Quick Triage Metric Spars & Search -->
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-[16px] text-outline">search</span>
+<input class="bg-transparent border-none outline-none font-code-sm text-code-sm text-on-surface placeholder:text-outline w-44 md:w-56 focus:w-64 transition-all" placeholder="LIN-* ara veya filtrele..." type="text"/>
+<kbd class="px-1.5 py-0.5 rounded bg-surface-container font-code-sm text-code-sm text-outline">⌘F</kbd>
+</div>
+<button class="p-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors" title="Kuyruk Ayarları">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+</div>
+<!-- MAIN QUEUE LANES -->
+<div class="flex flex-col gap-space-xl" id="queue-container">
+<!-- SECTION 1: IN PROGRESS (AKTİF AJANLAR) -->
+<section class="queue-section flex flex-col gap-space-sm" data-category="inprogress">
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="inline-flex w-2.5 h-2.5 rounded-full bg-secondary animate-ping"></span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">In Progress</h2>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Aktif Ajanlar</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary/10 text-secondary font-code-sm text-code-sm font-semibold">3 Görev</span>
+</div>
+<div class="flex items-center gap-space-sm text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px] text-secondary">memory</span>
+<span>3 Slot Kullanımda / 0 Bekleyen I/O</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<!-- Card: LIN-4021 -->
+<div class="task-row group flex flex-col md:flex-row md:items-center justify-between gap-space-md p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer relative overflow-hidden" tabindex="0">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+<div class="flex items-start md:items-center gap-space-md min-w-0">
+<span class="material-symbols-outlined text-secondary text-[20px] mt-0.5 md:mt-0 animate-spin" style="animation-duration: 4s;">autorenew</span>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-code-lg text-code-lg text-primary font-semibold tracking-tight">LIN-4021</span>
+<span class="font-body-md text-body-md text-on-surface font-medium truncate">Refactor Auth Token Cache</span>
+<span class="px-1.5 py-0.5 rounded bg-error-container/30 text-error font-label-sm text-label-sm uppercase">high-priority</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">backend</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-md font-body-sm text-body-sm text-on-surface-variant">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-outline">smart_toy</span>
+<span>Atanan:</span>
+<strong class="text-on-surface font-code-sm">CodeForge-Senior</strong>
+</span>
+<span class="text-outline-variant">•</span>
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-secondary">repeat</span>
+<span>Implement döngüsü:</span>
+<strong class="text-secondary font-code-sm">8/12</strong>
+</span>
+<span class="text-outline-variant">•</span>
+<span class="flex items-center gap-1 text-outline">
+<span class="material-symbols-outlined text-[15px]">timer</span>
+<span class="font-code-sm">4m 12s</span>
+</span>
+</div>
+</div>
+</div>
+<!-- Mini Progress & Actions -->
+<div class="flex items-center justify-between md:justify-end gap-space-md shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-outline-variant/20">
+<div class="flex flex-col items-end gap-1 w-32">
+<div class="flex items-center justify-between w-full font-label-sm text-label-sm text-outline">
+<span>Adım</span>
+<span class="text-secondary font-code-sm">66%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 66.6%"></div>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors" title="Canlı Loglar">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+</button>
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-colors" title="Görevi Durdur">
+<span class="material-symbols-outlined text-[16px]">stop</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card: LIN-4022 -->
+<div class="task-row group flex flex-col md:flex-row md:items-center justify-between gap-space-md p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer relative overflow-hidden" tabindex="0">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+<div class="flex items-start md:items-center gap-space-md min-w-0">
+<span class="material-symbols-outlined text-secondary text-[20px] mt-0.5 md:mt-0">fact_check</span>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-code-lg text-code-lg text-primary font-semibold tracking-tight">LIN-4022</span>
+<span class="font-body-md text-body-md text-on-surface font-medium truncate">Migrate S3 direct upload to signed presigned URLs</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">cloud</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">storage</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-md font-body-sm text-body-sm text-on-surface-variant">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-outline">smart_toy</span>
+<span>Atanan:</span>
+<strong class="text-on-surface font-code-sm">InfraLoop-Bot</strong>
+</span>
+<span class="text-outline-variant">•</span>
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-secondary">verified</span>
+<span class="text-secondary font-medium">Verify aşaması (Integration Testleri)</span>
+</span>
+<span class="text-outline-variant">•</span>
+<span class="flex items-center gap-1 text-outline">
+<span class="material-symbols-outlined text-[15px]">timer</span>
+<span class="font-code-sm">1m 45s</span>
+</span>
+</div>
+</div>
+</div>
+<!-- Mini Progress & Actions -->
+<div class="flex items-center justify-between md:justify-end gap-space-md shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-outline-variant/20">
+<div class="flex flex-col items-end gap-1 w-32">
+<div class="flex items-center justify-between w-full font-label-sm text-label-sm text-outline">
+<span>Adım</span>
+<span class="text-secondary font-code-sm">88%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 88%"></div>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors" title="Canlı Loglar">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+</button>
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-colors" title="Görevi Durdur">
+<span class="material-symbols-outlined text-[16px]">stop</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: TODO (SIRADAKİ GÖREVLER) -->
+<section class="queue-section flex flex-col gap-space-sm" data-category="todo">
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[18px] text-outline">pending_actions</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Todo</h2>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Sıradaki Görevler</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-code-sm text-code-sm font-semibold">8 Görev</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">low_priority</span>
+<span>Otomatik Sırala</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<!-- Card: LIN-4027 -->
+<div class="task-row group flex flex-col md:flex-row md:items-center justify-between gap-space-md p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer relative" tabindex="0">
+<div class="flex items-start md:items-center gap-space-md min-w-0">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-surface-container-highest text-outline group-hover:text-primary transition-colors">
+<span class="font-code-sm text-code-sm font-bold">1</span>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-code-lg text-code-lg text-primary font-semibold tracking-tight">LIN-4027</span>
+<span class="font-body-md text-body-md text-on-surface font-medium truncate">Update OpenAPI schemas for user metadata endpoints</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">api-specs</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-md font-body-sm text-body-sm text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="text-outline">Triage:</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-highest font-code-sm text-code-sm text-on-surface">Boyut S</span>
+<span class="text-outline-variant">•</span>
+<span class="text-secondary font-medium">Risk minimal</span>
+</span>
+<span class="text-outline-variant">•</span>
+<span class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Otomatik başlama hazır</span>
+</span>
+</div>
+</div>
+</div>
+<!-- Triage Actions -->
+<div class="flex items-center justify-end gap-2 shrink-0">
+<button class="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-1.5 hover:bg-primary transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+<span>Hemen Başlat</span>
+</button>
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors" title="Kuyruk Sırasını Değiştir">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</button>
+</div>
+</div>
+<!-- Card: LIN-4028 -->
+<div class="task-row group flex flex-col md:flex-row md:items-center justify-between gap-space-md p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer relative" tabindex="0">
+<div class="flex items-start md:items-center gap-space-md min-w-0">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-surface-container-highest text-outline group-hover:text-primary transition-colors">
+<span class="font-code-sm text-code-sm font-bold">2</span>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-code-lg text-code-lg text-primary font-semibold tracking-tight">LIN-4028</span>
+<span class="font-body-md text-body-md text-on-surface font-medium truncate">Add rate limiting headers to /v2/auth endpoints</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">security</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">auth</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-md font-body-sm text-body-sm text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="text-outline">Triage:</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-highest font-code-sm text-code-sm text-on-surface">Boyut M</span>
+<span class="text-outline-variant">•</span>
+<span class="text-on-surface font-medium">Onaylandı</span>
+</span>
+<span class="text-outline-variant">•</span>
+<span class="text-outline font-code-sm">Agent tahsisi bekliyor</span>
+</div>
+</div>
+</div>
+<!-- Triage Actions -->
+<div class="flex items-center justify-end gap-2 shrink-0">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>Sıraya Alındı</span>
+</button>
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors" title="Kuyruk Sırasını Değiştir">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: BACKLOG & PARKED (PARK EDİLMİŞ GÖREVLER) -->
+<section class="queue-section flex flex-col gap-space-sm" data-category="parked">
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[18px] text-error">pause_circle</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Backlog &amp; Park Edilmiş Görevler</h2>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Parked / Needs Triage</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container/20 text-error font-code-sm text-code-sm font-semibold">9 Görev</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">2 görev insan müdahalesi gerektiriyor</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<!-- Card: LIN-3990 (Complex warning layout) -->
+<div class="task-row group flex flex-col gap-space-md p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer relative" tabindex="0">
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-space-md">
+<div class="flex items-start gap-space-md min-w-0">
+<span class="material-symbols-outlined text-error text-[20px] mt-0.5">warning</span>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-code-lg text-code-lg text-primary font-semibold tracking-tight">LIN-3990</span>
+<span class="font-body-md text-body-md text-on-surface font-medium truncate">Deep refactor of legacy billing table schemas</span>
+<span class="px-2 py-0.5 rounded bg-error-container/30 text-error font-label-sm text-label-sm uppercase font-semibold">Park Edildi</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">database</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-md font-body-sm text-body-sm text-on-surface-variant">
+<span class="text-error font-medium">Triage: Risk Çok Yüksek ('big' etiketi eksik)</span>
+<span class="text-outline-variant">•</span>
+<span class="text-on-surface-variant">Bekleme Nedeni: <strong class="text-on-surface font-medium">"Büyük şema değişikliği için Linear'da insan onayı gerekiyor"</strong></span>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 shrink-0">
+<a class="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center gap-1 transition-colors" href="https://linear.app" target="_blank">
+<span>Linear'da Aç</span>
+<span class="material-symbols-outlined text-[13px]">arrow_outward</span>
+</a>
+<button class="px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-bright text-primary font-label-md text-label-md flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+<span>Triage'ı Zorla</span>
+</button>
+</div>
+</div>
+<!-- Helpful Human Prompt Callout -->
+<div class="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">lightbulb</span>
+<span>Nasıl onaylanır: Linear'da issue'ya <code class="px-1.5 py-0.5 rounded bg-surface-container-highest font-code-sm text-code-sm text-tertiary">approved-big</code> etiketi ekleyin veya Slack/Discord <code class="px-1 py-0.5 rounded bg-surface-container-highest font-code-sm text-code-sm text-on-surface">/linear approve LIN-3990</code> komutunu çalıştırın.</span>
+</div>
+</div>
+<!-- Card: LIN-3982 -->
+<div class="task-row group flex flex-col md:flex-row md:items-center justify-between gap-space-md p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer relative" tabindex="0">
+<div class="flex items-start md:items-center gap-space-md min-w-0">
+<span class="material-symbols-outlined text-outline text-[20px] mt-0.5 md:mt-0">error_outline</span>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-code-lg text-code-lg text-primary font-semibold tracking-tight">LIN-3982</span>
+<span class="font-body-md text-body-md text-on-surface font-medium truncate">Auth Token Refresh Flakiness in Redis</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-outline font-label-sm text-label-sm uppercase">Park Edildi</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase">redis</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-md font-body-sm text-body-sm text-on-surface-variant">
+<span class="text-error font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">replay</span>
+<span>3 test tekrarı başarısız (Flaky test izolasyon kuyruğuna alındı)</span>
+</span>
+<span class="text-outline-variant">•</span>
+<span class="text-outline font-code-sm">Daemon loop durduruldu</span>
+</div>
+</div>
+</div>
+<!-- Parked Actions -->
+<div class="flex items-center justify-end gap-2 shrink-0">
+<button class="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px]">refresh</span>
+<span>Tekrar Dene</span>
+</button>
+<button class="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px]">bug_report</span>
+<span>Crash Dump</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Bottom Sticky Batch & Status Bar -->
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-lowest mt-space-md">
+<div class="flex items-center gap-space-md">
+<span class="font-label-sm text-label-sm uppercase text-outline">Kuyruk Durumu:</span>
+<div class="flex items-center gap-2">
+<span class="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-code-sm text-code-sm text-on-surface font-medium">Acme Loop Daemon Dinlemede</span>
+</div>
+<span class="text-outline-variant hidden sm:inline">•</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant hidden sm:inline">Linear Webhook: aktarım gecikmesi ~84ms</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">file_download</span>
+<span>JSON Dışa Aktar</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Filter switching
+  const filterButtons = document.querySelectorAll('.queue-filter');
+  const sections = document.querySelectorAll('.queue-section');
+
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterButtons.forEach(b => {
+        b.classList.remove('bg-surface-container-high', 'text-on-surface', 'font-medium');
+        b.classList.add('text-on-surface-variant');
+      });
+      btn.classList.add('bg-surface-container-high', 'text-on-surface', 'font-medium');
+      btn.classList.remove('text-on-surface-variant');
+
+      const filter = btn.getAttribute('data-filter');
+      sections.forEach(sec => {
+        if (filter === 'all' || sec.getAttribute('data-category') === filter) {
+          sec.style.display = 'flex';
+        } else {
+          sec.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Sync button rotation animation micro-interaction
+  const syncBtn = document.getElementById('sync-trigger');
+  const syncIcon = document.getElementById('sync-icon');
+  if (syncBtn && syncIcon) {
+    syncBtn.addEventListener('click', () => {
+      syncIcon.classList.add('rotate-180');
+      setTimeout(() => {
+        syncIcon.classList.remove('rotate-180');
+      }, 700);
+    });
+  }
+
+  // J/K Keyboard Navigation
+  let selectedIndex = -1;
+  const taskRows = document.querySelectorAll('.task-row');
+
+  function updateRowFocus(newIndex) {
+    if (newIndex >= 0 && newIndex < taskRows.length) {
+      if (selectedIndex >= 0 && taskRows[selectedIndex]) {
+        taskRows[selectedIndex].classList.remove('ring-1', 'ring-primary', 'bg-surface-container');
+      }
+      selectedIndex = newIndex;
+      const target = taskRows[selectedIndex];
+      target.classList.add('ring-1', 'ring-primary', 'bg-surface-container');
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      target.focus();
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    // Avoid interfering if focus is in an input
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+    if (e.key === 'j' || e.key === 'J') {
+      e.preventDefault();
+      updateRowFocus(selectedIndex < taskRows.length - 1 ? selectedIndex + 1 : 0);
+    } else if (e.key === 'k' || e.key === 'K') {
+      e.preventDefault();
+      updateRowFocus(selectedIndex > 0 ? selectedIndex - 1 : taskRows.length - 1);
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      const primaryAction = taskRows[selectedIndex].querySelector('button');
+      if (primaryAction) primaryAction.click();
+    }
+  });
+</script></main></div></body></html>

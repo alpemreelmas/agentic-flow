@@ -1,0 +1,17 @@
+[package]
+name = "linear-looper-ui"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "linear_looper_ui_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }

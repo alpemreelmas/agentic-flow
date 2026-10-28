@@ -1,0 +1,20 @@
+[project]
+name = "linear-looper"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "agent-client-protocol>=0.12.1",
+    "httpx>=0.28.1",
+    "langgraph>=1.2.18",
+    "langgraph-checkpoint-sqlite>=3.1.2",
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
