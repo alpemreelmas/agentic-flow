@@ -4,16 +4,26 @@ import { act, html } from "./tpl.ts";
 import { loadQueue } from "./pages/queue.ts";
 import { runs, schedule, ui, type Page } from "./state.ts";
 
+/** Surfaces why the service is down: setup's silent autostart refuses when settings are incomplete. */
+export async function tryStartOnce() {
+  await refreshService();
+  if (!ui.service.running) await serviceAction("start");
+}
+
 export async function refreshService() {
   try {
     ui.service = await invoke("service_status");
-    if (ui.service.running) ui.serviceBusy = false;
+    if (ui.service.running) {
+      ui.serviceBusy = false;
+      ui.serviceError = "";
+    }
   } catch { /* keep the last known status */ }
   schedule();
 }
 
 async function serviceAction(kind: "start" | "stop" | "restart") {
   ui.serviceBusy = kind !== "stop";
+  ui.serviceError = "";
   schedule();
   try {
     if (kind !== "start") await invoke("stop_service");
@@ -21,7 +31,7 @@ async function serviceAction(kind: "start" | "stop" | "restart") {
     if (kind !== "stop") await invoke("start_service");
   } catch (e) {
     ui.serviceBusy = false;
-    console.error(e);
+    ui.serviceError = String(e);
   }
   setTimeout(refreshService, 1500);
 }
@@ -54,6 +64,7 @@ export function header(): HTMLElement {
         ${s.running && s.detail ? html`<span class="text-outline-variant">•</span>` : ""}
         ${s.running && s.detail ? html`<span class="font-code-sm text-code-sm text-on-surface-variant">${s.detail}</span>` : ""}
       </div>
+      ${ui.serviceError && !s.running ? html`<span data-act="nav" data-page="settings" class="cursor-pointer font-code-sm text-code-sm text-error truncate max-w-[420px]" title="${ui.serviceError}">${ui.serviceError}</span>` : ""}
       <div class="flex items-center gap-1 ml-space-xs">
         ${s.running
           ? html`<span class="contents"><button data-act="svc-stop" class="${btn}">Durdur</button><button data-act="svc-restart" class="${btn}">Yeniden Başlat</button></span>`

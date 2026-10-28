@@ -15,6 +15,7 @@ export const ui = {
   hideThoughts: false,
   service: { running: false, phase: "stopped", detail: "", pid: 0, started_at: 0 } as ServiceStatus,
   serviceBusy: false,
+  serviceError: "", // why the last start failed (e.g. settings incomplete)
   lastEventAt: 0,
   paths: { runs: "", registry: "" },
 };

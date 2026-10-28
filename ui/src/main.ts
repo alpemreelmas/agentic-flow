@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./style.css";
 import { html } from "./tpl.ts";
-import { header, refreshService, sidebar } from "./shell.ts";
+import { header, refreshService, sidebar, tryStartOnce } from "./shell.ts";
 import { initRegistry, registryPage } from "./registry.ts";
 import { applyEvent, type RunEvent } from "./runModel.ts";
 import { runs, schedule, setRenderer, sortedRuns, ui } from "./state.ts";
@@ -55,7 +55,7 @@ async function main() {
   schedule();
   await initRegistry(schedule);
   await loadSettings();
-  await refreshService();
+  await tryStartOnce();
   setInterval(refreshService, 3000);
 }
 
