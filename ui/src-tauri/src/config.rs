@@ -19,6 +19,7 @@ pub struct Workspace {
     pub project_id: String,
     pub project_name: String,
     pub enabled: bool,
+    pub skills: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -96,6 +97,9 @@ impl Config {
         }
         let many = self.workspaces.len() > 1;
         for (i, w) in self.workspaces.iter().enumerate() {
+            if w.skills.len() > 32 || w.skills.iter().any(|s| s.is_empty() || s.len() > 256 || s.contains(char::is_whitespace)) {
+                return Err(format!("workspace {}: select up to 32 valid skill IDs", w.name));
+            }
             if w.name.trim().is_empty() || w.name.starts_with('-') || w.repo.starts_with('-') {
                 return Err(format!("workspace {}: invalid name or path", i + 1));
             }
@@ -123,7 +127,7 @@ impl Config {
     /// What the service reads: it re-reads this file every poll, so edits apply without a restart.
     pub fn workspaces_json(&self) -> String {
         let list: Vec<serde_json::Value> = self.workspaces.iter()
-            .map(|w| serde_json::json!({"name": w.name, "repo": w.repo, "project_id": w.project_id, "enabled": w.enabled}))
+            .map(|w| serde_json::json!({"name": w.name, "repo": w.repo, "project_id": w.project_id, "enabled": w.enabled, "skills": w.skills}))
             .collect();
         serde_json::Value::Array(list).to_string()
     }
@@ -210,20 +214,24 @@ pub fn key_status() -> bool {
 }
 
 #[tauri::command]
-pub fn set_linear_key(key: String) -> Result<(), String> {
+pub fn set_linear_key(app: tauri::AppHandle, key: String) -> Result<(), String> {
     let key = key.trim();
     if key.is_empty() || key.contains(char::is_whitespace) {
         return Err("that does not look like an API key".into());
     }
-    entry()?.set_password(key).map_err(|e| e.to_string())
+    entry()?.set_password(key).map_err(|e| e.to_string())?;
+    crate::chat::refresh_bridge_keys(&app);
+    Ok(())
 }
 
 #[tauri::command]
-pub fn clear_linear_key() -> Result<(), String> {
+pub fn clear_linear_key(app: tauri::AppHandle) -> Result<(), String> {
     match entry()?.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
         Err(e) => Err(e.to_string()),
-    }
+    }?;
+    crate::chat::refresh_bridge_keys(&app);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -233,7 +241,7 @@ mod tests {
     fn ws(dir: &std::path::Path, name: &str, project: &str) -> Workspace {
         fs::create_dir_all(dir.join(".git")).unwrap();
         Workspace { id: name.into(), name: name.into(), repo: dir.to_string_lossy().into(), project_id: project.into(),
-            project_name: project.into(), enabled: true }
+            project_name: project.into(), enabled: true, skills: vec![] }
     }
 
     fn valid(dir: &std::path::Path) -> Config {

@@ -6,6 +6,7 @@ import os
 import re
 import signal
 import subprocess
+import sys
 from pathlib import Path
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
@@ -15,6 +16,7 @@ from .graph import build_graph
 from .registry import LocalRegistry
 from .service import AlreadyRunning, ServiceState, HEARTBEAT_EVERY, mark_interrupted
 from .sources import FileSource, LinearSource
+from .issue_lock import issue_lock, IssueBusy
 from .workspaces import Workspace, load as load_workspaces, route
 
 
@@ -31,6 +33,11 @@ def workdir(repo: Path, task_id: str) -> str:
 
 
 async def amain(a: argparse.Namespace):
+    if a.list_skills or a.read_skill:
+        from .skills import discover, resolve, read_text
+        catalog = discover(a.registry, None if a.global_skills else a.repo)
+        print(json.dumps({"skill": resolve(catalog, a.read_skill).json(), "content": read_text(Path(resolve(catalog, a.read_skill).path))} if a.read_skill else [s.json() for s in catalog]))
+        return
     if a.source == "linear" and not os.environ.get("LINEAR_API_KEY"):
         raise SystemExit("LINEAR_API_KEY is not set. Add the key in Ayarlar (it is stored in the system keychain).")
     source = FileSource(a.tasks) if a.source == "file" else LinearSource(
@@ -38,7 +45,7 @@ async def amain(a: argparse.Namespace):
         review=a.linear_review, blocked=a.linear_blocked)
     if a.chat:
         from .chat import run_chat
-        await run_chat(a.agent or "claude", str(Path(a.repo).resolve()))
+        await run_chat(a.agent or "claude", str(Path(a.repo).resolve()), registry=a.registry, skills=a.skill)
         return
     if a.list_queue:
         if a.source != "linear":
@@ -85,27 +92,37 @@ async def _serve(a, source, repo, state):
         while True:
             state.beat("polling")
             # re-read each poll: workspaces edited in the UI apply without restarting the service
-            workspaces = load_workspaces(a.workspaces) if a.workspaces else [Workspace("default", str(repo))]
+            workspaces = load_workspaces(a.workspaces) if a.workspaces else [Workspace("default", str(repo), skills=tuple(a.skill))]
             tasks = source.fetch_ready()
             print(f"[poll] {len(tasks)} ready task(s)", flush=True)
             for t in tasks:
-                ws = route(t, workspaces)
-                if ws is None:
-                    if t["id"] not in skipped:
-                        skipped.add(t["id"])
-                        print(f"[skip] {t['title']}: no enabled workspace for its project", flush=True)
-                    continue
-                cfg = {"configurable": {"thread_id": t["id"]}}
-                snap = await graph.aget_state(cfg)
-                state.beat("running", t["title"])
-                print(f"[run] {t['title']} ({'resume' if snap.next else 'new'})", flush=True)
-                inp = None if snap.next else {  # crashed mid-run -> resume from checkpoint
-                    "task_id": t["id"], "role": t.get("role") or "implementer",
-                    "title": t["title"], "description": t["description"],
-                    "verify_cmd": t["verify"], "verified": t.get("verified", True), "labels": t.get("labels") or [],
-                    "cwd": workdir(Path(ws.repo).resolve(), t["id"]), "workspace": ws.name}
-                out = await graph.ainvoke(inp, cfg)
-                print(f"[done] {t['title']}: {'OK' if not out.get('feedback') else 'escalated'}", flush=True)
+                try:
+                    with issue_lock(a.state, t["id"]):
+                        if isinstance(source, LinearSource):
+                            # The poll snapshot can be stale after a chat edit; re-read under the issue lock.
+                            t = source.refresh_task(t["id"])
+                            if t is None:
+                                continue
+                        ws = route(t, workspaces)
+                        if ws is None:
+                            if t["id"] not in skipped:
+                                skipped.add(t["id"])
+                                print(f"[skip] {t['title']}: no enabled workspace for its project", flush=True)
+                            continue
+                        cfg = {"configurable": {"thread_id": t["id"]}}
+                        snap = await graph.aget_state(cfg)
+                        state.beat("running", t["title"])
+                        print(f"[run] {t['title']} ({'resume' if snap.next else 'new'})", flush=True)
+                        inp = None if snap.next else {  # crashed mid-run -> resume from checkpoint
+                            "task_id": t["id"], "role": t.get("role") or "implementer",
+                            "title": t["title"], "description": t["description"],
+                            "verify_cmd": t["verify"], "verified": t.get("verified", True), "labels": t.get("labels") or [],
+                            "cwd": workdir(Path(ws.repo).resolve(), t["id"]), "workspace": ws.name,
+                            "skill_repo": str(Path(ws.repo).resolve()), "skills": list(ws.skills)}
+                        out = await graph.ainvoke(inp, cfg)
+                        print(f"[done] {t['title']}: {'OK' if not out.get('feedback') else 'escalated'}", flush=True)
+                except IssueBusy:
+                    print(f"[skip] {t['title']}: issue is busy", flush=True)
             if a.once:
                 return
             for left in range(a.interval, 0, -HEARTBEAT_EVERY):
@@ -114,10 +131,22 @@ async def _serve(a, source, repo, state):
 
 
 def cli():
+    if sys.argv[1:] == ["--bridge-broker"]:
+        from .bridge import run_broker
+        run_broker()
+        return
+    if sys.argv[1:] == ["--mcp-proxy"]:
+        from .bridge import run_proxy
+        run_proxy()
+        return
     p = argparse.ArgumentParser(prog="looper")
     p.add_argument("--agent", choices=["claude", "gemini", "codex"], default=None,
                    help="override the CLI every role would use")
     p.add_argument("--registry", default="registry", help="dir with roles/ and skills/")
+    p.add_argument("--global-skills", action="store_true")
+    p.add_argument("--list-skills", action="store_true")
+    p.add_argument("--read-skill", default=None)
+    p.add_argument("--skill", action="append", default=[])
     p.add_argument("--runs", default="runs", help="dir for per-run JSONL event logs (the UI reads these)")
     p.add_argument("--source", choices=["file", "linear"], default="file")
     p.add_argument("--tasks", default="tasks.json")

@@ -28,7 +28,7 @@ export type Item =
   | { kind: "triage"; decision: string; size: string; summary: string; questions: string[]; plan: string[];
       criteria: string[]; risks: string[]; proposedVerify: string }
   | { kind: "deliver"; ok: boolean; url: string; note: string; draft: boolean }
-  | { kind: "prompt"; role: string; text: string }
+  | { kind: "prompt"; role: string; text: string; skills?: string[] }
   | { kind: "user"; text: string }
   | { kind: "message"; text: string }
   | { kind: "thought"; text: string }
@@ -139,8 +139,11 @@ export function applyEvent(runs: Map<string, Run>, runId: string, ev: RunEvent):
     case "review_skipped":
       run.items.push({ kind: "note", text: `Review skipped: ${str(ev.reason)}` });
       break;
+    case "skills_used":
+      if (Array.isArray(ev.skills) && ev.skills.length) run.items.push({ kind: "note", text: "Skills · " + ev.skills.map((s: any) => `${s.name} (${s.source})`).join(", ") });
+      break;
     case "prompt":
-      run.items.push({ kind: "prompt", role: str(ev.role), text: str(ev.text) });
+      run.items.push({ kind: "prompt", role: str(ev.role), text: str(ev.text), ...(Array.isArray(ev.skills) && ev.skills.length ? {skills: ev.skills.map((s: any) => String(s.id))} : {}) });
       break;
     case "attempt_end":
       run.items.push({ kind: "stop", reason: str(ev.stop_reason) });

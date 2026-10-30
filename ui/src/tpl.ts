@@ -12,14 +12,15 @@ export function html(strings: TemplateStringsArray, ...vals: Val[]): HTMLElement
     if (Array.isArray(v)) return v.map(part).join("");
     if (v instanceof Node) {
       nodes.push(v);
-      return `<slot data-n="${nodes.length - 1}"></slot>`;
+      // Unlike <slot>, <template> survives the HTML parser inside <select> and tables.
+      return `<template data-n="${nodes.length - 1}"></template>`;
     }
     return esc(String(v));
   };
   const src = strings.reduce((acc, s, i) => acc + s + (i < vals.length ? part(vals[i]) : ""), "");
   const t = document.createElement("template");
   t.innerHTML = src.trim();
-  for (const slot of [...t.content.querySelectorAll("slot[data-n]")]) {
+  for (const slot of [...t.content.querySelectorAll("template[data-n]")]) {
     slot.replaceWith(nodes[Number((slot as HTMLElement).dataset.n)]);
   }
   return t.content.firstElementChild as HTMLElement;

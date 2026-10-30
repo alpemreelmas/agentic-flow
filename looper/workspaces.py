@@ -15,12 +15,13 @@ class Workspace:
     repo: str
     project_id: str | None = None
     enabled: bool = True
+    skills: tuple[str, ...] = ()
 
 
 def load(path: str | Path) -> list[Workspace]:
     raw = json.loads(Path(path).read_text())
     return [Workspace(name=str(w["name"]), repo=str(w["repo"]), project_id=w.get("project_id") or None,
-                      enabled=w.get("enabled", True) is not False) for w in raw]
+                      enabled=w.get("enabled", True) is not False, skills=_skills(w.get("skills", []))) for w in raw]
 
 
 def route(task: dict, workspaces: list[Workspace]) -> Workspace | None:
@@ -36,3 +37,9 @@ def route(task: dict, workspaces: list[Workspace]) -> Workspace | None:
     if len(workspaces) == 1 and workspaces[0].project_id is None and workspaces[0].enabled:
         return workspaces[0]
     return None
+
+
+def _skills(value) -> tuple[str, ...]:
+    if not isinstance(value, list) or not all(isinstance(s, str) and s.strip() for s in value):
+        raise ValueError("workspace skills must be a list of non-empty skill IDs")
+    return tuple(dict.fromkeys(value))

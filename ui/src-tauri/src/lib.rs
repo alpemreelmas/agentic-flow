@@ -15,9 +15,12 @@ use std::{
 };
 
 mod chat;
+mod bridge;
 mod config;
 mod service;
 mod updates;
+mod resources;
+mod skills;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -240,11 +243,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(updates::Updates::default())
+        .manage(resources::Resources::default())
         .manage(Watcher::default())
         .manage(chat::Chats::default())
         .setup(|app| {
             std::thread::spawn(|| { let _ = service::user_path(); }); // warm the PATH lookup off the UI thread
             use tauri::Manager;
+            app.state::<resources::Resources>().start();
             if let Ok(res) = app.path().resource_dir() {
                 if let Err(e) = service::seed_registry(&res.join("registry")) {
                     eprintln!("could not seed registry: {e}");
@@ -257,6 +262,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            skills::list_skills,
+            skills::read_skill,
+            resources::resource_usage,
             updates::check_update,
             updates::install_update,
             default_runs_dir,

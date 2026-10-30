@@ -35,3 +35,8 @@ test("only real files and known skills count as mentions", () => {
   assert.deepEqual(mentionedFiles("a @src/a.ts b @nope.ts @src/a.ts", new Set(["src/a.ts"])), ["src/a.ts"]);
   assert.deepEqual(mentionedSkills("#review-checklist and #ghost", new Set(["review-checklist"])), ["review-checklist"]);
 });
+
+
+test("source-qualified and nested skill mentions retain their full IDs", () => {
+  assert.deepEqual(mentionedSkills("Use #agents:design and #project:system/workflow", new Set(["agents:design", "project:system/workflow"])), ["agents:design", "project:system/workflow"]);
+});

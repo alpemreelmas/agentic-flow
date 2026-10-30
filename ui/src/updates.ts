@@ -24,7 +24,7 @@ async function check() {
 
 export async function initUpdates() {
   box = document.createElement("aside");
-  box.className = "fixed bottom-4 right-4 z-50 rounded border border-outline-variant bg-surface-container p-3 text-sm max-w-md shadow-lg";
+  box.className = "fixed bottom-12 right-4 z-50 rounded border border-outline-variant bg-surface-container p-3 text-sm max-w-md shadow-lg";
   box.setAttribute("aria-label", "Uygulama güncellemeleri");
   text = document.createElement("span");
   text.setAttribute("role", "status");

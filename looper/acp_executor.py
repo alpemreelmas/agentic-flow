@@ -80,18 +80,34 @@ class _Client(acp.Client):
     """
 
     def __init__(self, auto_approve: bool, quiet: bool, on_event: Callable[[dict], None] | None = None,
-                 policy: str = ""):
+                 policy: str = "", retain_messages: bool = True):
+        self.retain_messages = retain_messages
         self.policy = policy
         self.auto_approve = auto_approve
         self.quiet = quiet
         self.on_event = on_event or (lambda ev: None)
         self.chunks: list[str] = []
+        self.bridge_server: str | None = None
+        self.bridge_adapter: str | None = None
+
+    def _bridge_permission(self, tool_call) -> bool:
+        # Namespaced adapter metadata, never a display title or a guessed tool kind.
+        if not self.bridge_server or self.bridge_adapter != "claude":
+            return False
+        meta = getattr(tool_call, "field_meta", None) or {}
+        claude = meta.get("claudeCode", {})
+        from .linear_tools import TOOL_MAP
+        return claude.get("toolName") in {f"mcp__{self.bridge_server}__{name}" for name in TOOL_MAP}
 
     async def request_permission(self, session_id, tool_call, options, **kwargs):
         allow = next((o for o in options if o.kind == "allow_once"), None)
         granted = bool(self.auto_approve and allow)
         if self.policy == "readonly":
-            granted = bool(allow and getattr(tool_call, "kind", None) in READ_ONLY_KINDS)
+            granted = bool(allow and (getattr(tool_call, "kind", None) in READ_ONLY_KINDS
+                                      or self._bridge_permission(tool_call)))
+            if not granted and self.bridge_server:
+                self.on_event({"type": "bridge_status", "available": True,
+                               "message": "Repo yazma/komut izni verilmedi. Agent Linear aracı için güvenilir kimlik iletemiyorsa başka adaptörle deneyin."})
         self.on_event({"type": "permission", "title": tool_call.title, "granted": granted})
         if granted:
             self._log(f"  [allow] {tool_call.title}")
@@ -105,7 +121,8 @@ class _Client(acp.Client):
         kind = update.session_update
         text = getattr(getattr(update, "content", None), "text", None)
         if kind == "agent_message_chunk" and text:
-            self.chunks.append(text)
+            if self.retain_messages:
+                self.chunks.append(text)
             self.on_event({"type": "agent_message", "text": text})
         elif kind == "agent_thought_chunk" and text:
             self.on_event({"type": "agent_thought", "text": text})
@@ -134,10 +151,33 @@ async def run_prompt(agent: str, cwd: str, prompt: str, *, timeout: float = 1800
     client = _Client(auto_approve, quiet, on_event)
     cmd, *args = AGENTS[agent]
     async with acp.spawn_agent_process(client, cmd, *args, cwd=cwd) as (conn, _proc):
-        await conn.initialize(protocol_version=acp.PROTOCOL_VERSION)
-        session = await conn.new_session(cwd=cwd, mcp_servers=[])
+        await initialize_connection(conn)
+        session = await asyncio.wait_for(conn.new_session(cwd=cwd, mcp_servers=[]), 30)
         resp = await asyncio.wait_for(
             conn.prompt(session_id=session.session_id, prompt=[acp.text_block(prompt)]),
             timeout=timeout,
         )
     return RunResult("".join(client.chunks), str(resp.stop_reason))
+
+
+async def initialize_connection(conn, *, timeout: float = 30):
+    """Advertise only implemented client features and reject incompatible agents early."""
+    response = await asyncio.wait_for(conn.initialize(
+        protocol_version=acp.PROTOCOL_VERSION,
+        client_capabilities=schema.ClientCapabilities(fs=None, terminal=False),
+        client_info=schema.Implementation(name="linear-looper", version="0.1.0"),
+    ), timeout)
+    if response.protocol_version != acp.PROTOCOL_VERSION:
+        raise RuntimeError(f"ACP version mismatch: client={acp.PROTOCOL_VERSION}, agent={response.protocol_version}")
+    return response
+
+
+async def cancel_turn(conn, session_id: str, turn: asyncio.Task, *, grace: float = 5):
+    """Allow the agent to acknowledge cancellation before accepting another prompt."""
+    try:
+        await asyncio.wait_for(conn.cancel(session_id=session_id), grace)
+        await asyncio.wait_for(asyncio.shield(turn), grace)
+    finally:
+        if not turn.done():
+            turn.cancel()
+        await asyncio.gather(turn, return_exceptions=True)

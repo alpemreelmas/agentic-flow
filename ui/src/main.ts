@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./style.css";
+import { initResources } from "./resources.ts";
 import { initUpdates } from "./updates.ts";
 import { html } from "./tpl.ts";
 import { header, refreshService, sidebar, tryStartOnce } from "./shell.ts";
@@ -18,6 +19,13 @@ const PAGES = { overview: overviewPage, runs: runsPage, queue: queuePage, chat: 
 function render() {
   if (ui.following) ui.selected = sortedRuns()[0]?.id ?? null;
   const root = document.getElementById("root")!;
+  if (ui.page === "chat" && document.getElementById("chat-page")) {
+    const old = document.getElementById("chat-page")!;
+    const next = chatPage();
+    if (old !== next) old.replaceWith(next);
+    root.querySelector(":scope > header")?.replaceWith(header());
+    return;
+  }
   // Keep typing intact in the inputs a re-render would otherwise recreate.
   const active = document.activeElement as HTMLInputElement | null;
   const focus = active?.id ? { id: active.id, start: active.selectionStart, end: active.selectionEnd } : null;
@@ -44,6 +52,7 @@ async function demo() {
 
 async function main() {
   setRenderer(render);
+  if ("__TAURI_INTERNALS__" in window) initResources();
   if (import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)) return demo();
   await listen<{ run_id: string; event: RunEvent }>("run-event", ({ payload }) => {
     applyEvent(runs, payload.run_id, payload.event);

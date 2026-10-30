@@ -1,5 +1,7 @@
 // Registry tab: edit roles and skills (the markdown files the Python loop reads at run time).
 import { invoke } from "@tauri-apps/api/core";
+import { catalog, refreshSkills, type Skill } from "./skills.ts";
+import { activeWs, ui } from "./state.ts";
 import { act, html } from "./tpl.ts";
 
 type Kind = "role" | "skill";
@@ -13,6 +15,10 @@ const TEMPLATES: Record<Kind, (name: string) => string> = {
 let dir = "";
 let entries: Entry[] = [];
 let current: Entry | null = null;
+let preview: {skill: Skill; content: string} | null = null;
+let libraryQuery = "";
+let libraryWorkspace: string | null = null;
+const libraryRepo = () => libraryWorkspace === null ? activeWs()?.repo : libraryWorkspace || undefined;
 let draft = ""; // text in the editor
 let saved = ""; // text on disk
 let message = "";
@@ -52,6 +58,7 @@ async function open(e: Entry) {
   try {
     saved = draft = await invoke<string>("read_entry", { dir, kind: e.kind, name: e.name });
     current = e;
+    preview = null;
     message = "";
   } catch (err) {
     message = `Not saved: ${err}`;
@@ -88,6 +95,34 @@ async function create(kind: Kind, name: string) {
   }
   await refresh();
   await open({ kind, name });
+}
+
+act("skill-preview", async (el) => {
+  if (dirty()) { message = "Not saved: önce değişiklikleri kaydedin veya geri alın."; updateStatus(); return; }
+  try {
+    preview = await invoke<{skill: Skill; content: string}>("read_skill", {repo: libraryRepo() ?? null, id: el.dataset.id});
+    current = null; draft = saved = ""; message = "";
+  } catch (error) { message = String(error); }
+  rerender();
+});
+act("skills-refresh", () => { void refreshSkills(libraryRepo()); void refresh(); });
+
+function library(): HTMLElement {
+  const repo = libraryRepo();
+  const available = catalog(repo);
+  const section = html`<section class="px-space-sm py-space-md border-t border-outline-variant/20 flex flex-col gap-2">
+    <div class="flex items-center justify-between"><strong class="text-sm text-on-surface">Ortak skill kütüphanesi</strong><button data-act="skills-refresh" class="text-primary text-xs">Yenile</button></div>
+    <select id="skill-workspace" aria-label="Skill workspace" class="bg-surface-container rounded p-2 text-sm"><option value="" ${!repo ? "selected" : ""}>Global skill’ler</option>${ui.workspaces.map(w => html`<option value="${w.repo}" ${repo === w.repo ? "selected" : ""}>${w.name}</option>`)}</select>
+    <input id="skill-search" aria-label="Skill ara" placeholder="İsim, kaynak veya açıklama ara…" value="${libraryQuery}" class="bg-surface-container rounded p-2 text-sm"/>
+    <p class="text-xs text-outline">${available.loading ? "Yükleniyor…" : `${available.skills.length} skill`} · Proje varsayılanlarını Ayarlar’dan seçin.</p>
+    ${available.error ? html`<p role="status" class="text-xs text-error">${available.error}</p>` : ""}
+    <div class="max-h-96 overflow-auto" id="skill-library-list"></div>
+  </section>`;
+  section.querySelector<HTMLSelectElement>("select")!.onchange = e => { libraryWorkspace = (e.target as HTMLSelectElement).value; rerender(); };
+  section.querySelector<HTMLInputElement>("input")!.oninput = e => { libraryQuery = (e.target as HTMLInputElement).value; rerender(); };
+  const matching = available.skills.filter(s => `${s.name} ${s.id} ${s.description}`.toLowerCase().includes(libraryQuery.toLowerCase()));
+  for (const skill of matching) section.querySelector("#skill-library-list")!.append(html`<button data-act="skill-preview" data-id="${skill.id}" class="w-full text-left p-2 rounded hover:bg-surface-container text-on-surface-variant"><span class="block text-sm">${skill.name}</span><span class="block text-xs text-outline">${skill.id}${skill.error ? " · okunamadı" : ""}</span></button>`);
+  return section;
 }
 
 act("reg-open", (el) => { const e = entries.find((x) => x.kind === el.dataset.kind && x.name === el.dataset.name); if (e) open(e); });
@@ -138,8 +173,16 @@ export function registryPage(): HTMLElement {
     </div>
     <div class="col-span-8 xl:col-span-9 bg-surface flex flex-col" id="reg-editor"></div>
   </div>`;
-  page.querySelector("#reg-groups")!.append(group("Roller (Roles)", "role"), group("Beceriler (Skills)", "skill"));
+  page.querySelector("#reg-groups")!.append(group("Roller (Roles)", "role"), group("Beceriler (Skills)", "skill"), library());
   const ed = page.querySelector("#reg-editor")!;
+  if (preview) {
+    if (message) ed.append(html`<p role="status" class="p-3 text-sm text-error">${message}</p>`);
+    const skill = preview.skill;
+    const detail = html`<section class="p-space-lg flex flex-col gap-3"><h2 class="text-lg text-on-surface">${skill.name}</h2><p class="text-sm text-on-surface-variant">${skill.description}</p><p class="text-xs text-secondary">${skill.id} · Salt okunur kaynak</p><p class="text-xs text-outline break-all">${skill.path}</p><p class="text-sm text-on-surface-variant">${skill.scripts ? "scripts/ mevcut. " : ""}${skill.references ? "references/ mevcut. " : ""}Destek dosyaları kaynak klasöründen okunur; araç çalıştırma yetkisi agent’a ve oturum politikasına bağlıdır.</p>${skill.requirements ? html`<p class="text-xs text-tertiary">Bildirilen araç gereksinimleri: ${skill.requirements}</p>` : ""}${skill.error ? html`<p class="text-sm text-error">${skill.error}</p>` : ""}<textarea readonly aria-label="Skill içeriği" class="min-h-[60vh] w-full rounded p-3 bg-surface-container-lowest font-code-sm text-code-sm"></textarea></section>`;
+    detail.querySelector("textarea")!.value = preview.content;
+    ed.append(detail);
+    return page;
+  }
   if (!current) {
     ed.append(html`<div class="p-space-xl text-outline font-body-md text-body-md">${message || "Düzenlemek için bir rol veya skill seçin."}</div>`);
     return page;

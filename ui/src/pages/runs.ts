@@ -1,5 +1,6 @@
 // Runs screen: design/runs_zaman_izgisi_y_r_tme.
 import { act, html } from "../tpl.ts";
+import { invoke } from "@tauri-apps/api/core";
 import { markdownEl } from "../markdown.ts";
 import type { Item, Run, ToolDiff } from "../runModel.ts";
 import { SHOWN_STYLE, STAGES, elapsed, prUrl, runs, schedule, shown, shortId, sortedRuns, stageIcon, stageOf, ui } from "../state.ts";
@@ -139,7 +140,7 @@ export function itemRow(item: Item, key: string): HTMLElement | null {
       return row(ok ? "bg-secondary-container/20 text-secondary" : "bg-tertiary/20 text-tertiary", "checklist", collapsible(key, head, [body], "bg-surface-container-low"));
     }
     case "prompt": {
-      const head = html`<div class="px-space-md py-2 bg-surface-container flex items-center justify-between font-code-sm text-code-sm"><span class="text-on-surface-variant">Prompt → ${item.role}</span><span class="material-symbols-outlined text-[16px] text-outline">expand_more</span></div>`;
+      const head = html`<div class="px-space-md py-2 bg-surface-container flex items-center justify-between font-code-sm text-code-sm"><span class="text-on-surface-variant">Prompt → ${item.role}${item.skills?.length ? " · Skills: " + item.skills.join(", ") : ""}</span><span class="material-symbols-outlined text-[16px] text-outline">expand_more</span></div>`;
       return row("bg-surface-container-highest text-on-surface", "notes", collapsible(key, head, [pre(item.text, "text-on-surface-variant")], "bg-surface-container-lowest"));
     }
     case "message":
@@ -151,6 +152,17 @@ export function itemRow(item: Item, key: string): HTMLElement | null {
       const done = item.status === "completed", fail = item.status === "failed";
       const head = html`<div class="px-space-md py-2 bg-surface-container flex items-center justify-between font-code-sm text-code-sm"><div class="flex items-center gap-2 min-w-0"><span class="material-symbols-outlined text-[14px] ${fail ? "text-error" : "text-secondary"}">${fail ? "error" : done ? "check_circle" : "play_arrow"}</span><span class="${fail ? "text-error" : "text-secondary"} font-medium">tool_call:</span><span class="text-on-surface flex-shrink-0">${item.title || item.toolKind || "tool"}</span><span class="text-on-surface-variant truncate">${first}</span></div><div class="flex items-center gap-3 flex-shrink-0"><span class="text-outline">${item.status}</span><span class="material-symbols-outlined text-[16px] text-outline">expand_more</span></div></div>`;
       const out = item.output.length ? item.output : item.rawOutput ? [item.rawOutput] : [];
+      if (item.id.startsWith("bridge-") && item.status === "completed") {
+        const result = html`<div class="flex-1 min-w-0 rounded overflow-hidden bg-surface-container-low"></div>`;
+        result.append(head, ...out.map(text => markdownEl(text, "bridge")));
+        for (const link of result.querySelectorAll("a")) {
+          link.addEventListener("click", () => {
+            const url = link.getAttribute("href");
+            if (url?.startsWith("https://linear.app/")) void invoke("open_url", { url });
+          });
+        }
+        return row("bg-secondary/10 text-secondary", "build", result);
+      }
       const body: Node[] = [];
       if (item.input) body.push(pre(item.input, "text-primary"));
       out.forEach((t) => body.push(pre(t, "text-on-surface-variant")));
@@ -238,7 +250,7 @@ function visibleOnly(_: "errors", item: Item): boolean {
 export function runsPage(): HTMLElement {
   const old = document.getElementById("timelineScrollArea");
   const prev = old ? { top: old.scrollTop, atBottom: old.scrollHeight - old.scrollTop - old.clientHeight < 40 } : null;
-  const wrap = html`<div class="flex h-[calc(100vh-2.5rem)] w-full overflow-hidden bg-surface-container-lowest"></div>`;
+  const wrap = html`<div class="flex h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-surface-container-lowest"></div>`;
   wrap.append(listPane(), detailPane(prev));
   return wrap;
 }

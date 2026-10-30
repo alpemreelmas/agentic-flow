@@ -1,6 +1,7 @@
 // Settings screen: design/ayarlar_entegrasyon_d_ng_denetimleri, bound to config.json + the OS keychain.
 import { invoke } from "@tauri-apps/api/core";
 import { act, html } from "../tpl.ts";
+import { catalog, refreshSkills } from "../skills.ts";
 import { schedule, ui, type Workspace } from "../state.ts";
 
 interface Config {
@@ -14,6 +15,8 @@ let keySet = false;
 let message = "";
 let checkOutput = "";
 let checking = false;
+const skillSections = new Set<string>();
+const skillQueries = new Map<string, string>();
 
 export async function loadSettings() {
   try {
@@ -244,6 +247,38 @@ function workspaceBlock(): HTMLElement {
     cols[1].append(repoWrap);
     cols[2].append(opts);
     cols[3].append(on, document.createTextNode("Açık"));
+    const skillBox = html`<details class="col-span-12 mt-2 border-t border-outline-variant/20 pt-2"><summary class="cursor-pointer text-sm text-on-surface-variant">Varsayılan skill’ler · ${(w.skills ?? []).length} seçili</summary><div class="mt-2 flex flex-col gap-2"></div></details>`;
+    (skillBox as HTMLDetailsElement).open = skillSections.has(w.id);
+    skillBox.ontoggle = () => { if ((skillBox as HTMLDetailsElement).open) skillSections.add(w.id); else skillSections.delete(w.id); };
+    const list = skillBox.lastElementChild!;
+    const available = catalog(w.repo || undefined);
+    const reload = html`<button type="button" class="text-xs text-primary text-left">Skill kütüphanesini yenile</button>`;
+    reload.onclick = () => { void refreshSkills(w.repo || undefined); };
+    list.append(reload);
+    if (available.loading) list.append(html`<p class="text-xs text-outline">Skill’ler yükleniyor…</p>`);
+    if (available.error) list.append(html`<p class="text-xs text-error">${available.error} · Proje klasörünü önce kaydedin.</p>`);
+    const choices = html`<div class="max-h-64 overflow-auto flex flex-col gap-1"></div>`;
+    const search = html`<input id="ws-skills-${w.id}" aria-label="${w.name} skill ara" placeholder="Skill ara…" value="${skillQueries.get(w.id) ?? ""}" class="${input}"/>` as HTMLInputElement;
+    search.oninput = () => { skillQueries.set(w.id, search.value); schedule(); };
+    list.append(search);
+    const query = (skillQueries.get(w.id) ?? "").toLowerCase();
+    for (const skill of available.skills.filter(s => `${s.name} ${s.id} ${s.description}`.toLowerCase().includes(query))) {
+      const selected = (w.skills ?? []).includes(skill.id);
+      const choice = html`<label class="flex items-start gap-2 text-sm text-on-surface-variant p-1"><input type="checkbox" ${selected ? "checked" : ""} ${skill.error && !selected ? "disabled" : ""}/><span>${skill.name}<small class="block text-outline text-xs">${skill.id}${skill.scripts ? " · script içerir" : ""}${skill.error ? " · " + skill.error : ""}</small></span></label>`;
+      choice.querySelector("input")!.onchange = (event) => {
+        if (skill.error && (event.target as HTMLInputElement).checked) { (event.target as HTMLInputElement).checked = false; return; }
+        w.skills = (event.target as HTMLInputElement).checked ? [...new Set([...(w.skills ?? []), skill.id])] : (w.skills ?? []).filter(id => id !== skill.id);
+        skillBox.querySelector("summary")!.textContent = `Varsayılan skill’ler · ${w.skills.length} seçili`;
+      };
+      choices.append(choice);
+    }
+    for (const id of (w.skills ?? []).filter(id => !available.skills.some(s => s.id === id))) {
+      const missing = html`<button type="button" class="text-xs text-tertiary text-left">${id} · bulunamadı / kaldır</button>`;
+      missing.onclick = () => { w.skills = w.skills?.filter(s => s !== id); schedule(); };
+      choices.append(missing);
+    }
+    list.append(choices, html`<p class="text-xs text-outline">Seçimler yeni sohbetlerde ve sonraki otomatik görevlerde uygulanır. Kaydet’e basın. Skill araç gereksinimleri agent’a bağlıdır; sohbet salt okunur kalır.</p>`);
+    row.append(skillBox);
     rows.append(row);
   }
   return b;

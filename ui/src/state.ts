@@ -4,7 +4,7 @@ import type { Run } from "./runModel.ts";
 export type Page = "overview" | "runs" | "queue" | "chat" | "registry" | "settings";
 export interface ServiceStatus { running: boolean; phase: string; detail: string; pid: number; started_at: number }
 
-export interface Workspace { id: string; name: string; repo: string; project_id: string; project_name: string; enabled: boolean }
+export interface Workspace { id: string; name: string; repo: string; project_id: string; project_name: string; enabled: boolean; skills?: string[] }
 export const runs = new Map<string, Run>();
 export const ui = {
   page: "runs" as Page,

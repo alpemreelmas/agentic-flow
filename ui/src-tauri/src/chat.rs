@@ -20,6 +20,7 @@ const AGENTS: [&str; 3] = ["claude", "gemini", "codex"];
 struct Session {
     child: Child,
     stdin: ChildStdin,
+    bridge: Option<crate::bridge::Bridge>,
 }
 
 #[derive(Default)]
@@ -39,7 +40,7 @@ struct ChatEvent {
     event: Value,
 }
 
-fn emit(app: &AppHandle, chat_id: &str, event: Value) {
+pub(crate) fn emit(app: &AppHandle, chat_id: &str, event: Value) {
     let _ = app.emit("chat-event", ChatEvent { chat_id: chat_id.into(), event });
 }
 
@@ -49,7 +50,7 @@ fn new_id() -> String {
 }
 
 /// Only a configured workspace's folder can be browsed: the page can't point the agent elsewhere.
-fn allowed_repo(repo: &str) -> bool {
+pub(crate) fn allowed_repo(repo: &str) -> bool {
     let norm = |p: &str| std::fs::canonicalize(p).unwrap_or_else(|_| std::path::PathBuf::from(p.trim_end_matches('/')));
     let want = norm(repo);
     crate::config::load().workspaces.iter().any(|w| norm(&w.repo) == want)
@@ -68,14 +69,43 @@ pub async fn chat_start(app: AppHandle, repo: String, agent: String) -> Result<S
         if chats.0.lock().unwrap().len() >= MAX_CHATS {
             return Err(format!("at most {MAX_CHATS} chats at once; close one first"));
         }
+        let id = new_id();
+        let config = crate::config::load();
+        let norm = |p: &str| std::fs::canonicalize(p).unwrap_or_else(|_| std::path::PathBuf::from(p));
+        let workspace = config.workspaces.iter().find(|w| norm(&w.repo) == norm(&repo));
+        let bridge = match workspace {
+            _ if agent == "gemini" => {
+                emit(&app, &id, json!({"type": "bridge_status", "available": false,
+                    "message": "Gemini adaptöründe Linear araçları kapalı; Claude veya Codex ile sohbet açın. Repo sohbeti kullanılabilir."}));
+                None
+            }
+            Some(w) if w.enabled && !w.project_id.is_empty() && crate::config::linear_key().is_some() => {
+                match crate::bridge::Bridge::start(app.clone(), id.clone(), w, &config) {
+                    Ok(bridge) => Some(bridge),
+                    Err(message) => { emit(&app, &id, json!({"type": "bridge_status", "available": false, "message": message})); None }
+                }
+            }
+            _ => {
+                emit(&app, &id, json!({"type": "bridge_status", "available": false,
+                    "message": "Linear araçları için Ayarlar'dan anahtar ekleyin, workspace'i etkinleştirip Linear projesini seçin; ardından sohbeti yeniden açın."}));
+                None
+            }
+        };
         let mut cmd = crate::service::base_command();
+        for key in ["LINEAR_API_KEY", "GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN", "LOOPER_BRIDGE_DESCRIPTOR"] {
+            cmd.env_remove(key);
+        }
+        if let Some(b) = &bridge { cmd.env("LOOPER_BRIDGE_DESCRIPTOR", b.descriptor.to_string()); }
         cmd.args(["--chat", "--agent", &agent, "--repo", &repo]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        cmd.arg("--registry").arg(crate::service::registry_dir());
+        if let Some(w) = workspace {
+            for skill in &w.skills { cmd.arg("--skill").arg(skill); }
+        }
         let mut child = cmd.spawn().map_err(|e| format!("could not start the chat: {e}"))?;
         let stdin = child.stdin.take().ok_or("no stdin")?;
         let stdout = child.stdout.take().ok_or("no stdout")?;
         let stderr = child.stderr.take().ok_or("no stderr")?;
-        let id = new_id();
-        chats.0.lock().unwrap().insert(id.clone(), Session { child, stdin });
+        chats.0.lock().unwrap().insert(id.clone(), Session { child, stdin, bridge });
 
         let err_tail = std::sync::Arc::new(Mutex::new(String::new()));
         let tail = err_tail.clone();
@@ -84,7 +114,8 @@ pub async fn chat_start(app: AppHandle, repo: String, agent: String) -> Result<S
                 let mut t = tail.lock().unwrap();
                 t.push_str(&line);
                 t.push('\n');
-                let cut = t.len().saturating_sub(2000);
+                let mut cut = t.len().saturating_sub(2000);
+                while !t.is_char_boundary(cut) { cut += 1; }
                 *t = t[cut..].to_string();
             }
         });
@@ -114,14 +145,15 @@ fn send(app: &AppHandle, id: &str, msg: Value) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn chat_send(app: AppHandle, chat_id: String, text: String, files: Vec<String>) -> Result<(), String> {
+pub fn chat_send(app: AppHandle, chat_id: String, text: String, files: Vec<String>, skills: Vec<String>) -> Result<(), String> {
     if text.trim().is_empty() || text.len() > 100_000 {
         return Err("empty or too long".into());
     }
     if files.len() > 20 || files.iter().any(|f| f.starts_with('/') || f.split('/').any(|p| p == "..")) {
         return Err("invalid file mention".into());
     }
-    send(&app, &chat_id, json!({"type": "prompt", "text": text, "files": files}))
+    if skills.len() > 32 || skills.iter().any(|s| s.len() > 256) { return Err("invalid skills".into()); }
+    send(&app, &chat_id, json!({"type": "prompt", "text": text, "files": files, "skills": skills}))
 }
 
 #[tauri::command]
@@ -163,9 +195,24 @@ pub fn chat_cancel(app: AppHandle, chat_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn chat_stop(app: AppHandle, chat_id: String) {
-    if let Some(mut s) = app.state::<Chats>().0.lock().unwrap().remove(&chat_id) {
+    if let Some(s) = app.state::<Chats>().0.lock().unwrap().remove(&chat_id) {
         drop(s.stdin); // EOF lets the agent exit cleanly; kill is the backstop
-        let _ = s.child.kill();
-        let _ = s.child.wait();
+        drop(s.bridge);
+        thread::spawn(move || {
+            let mut child = s.child;
+            for _ in 0..50 {
+                if child.try_wait().ok().flatten().is_some() { return; }
+                thread::sleep(std::time::Duration::from_millis(100));
+            }
+            let _ = child.kill();
+            let _ = child.wait();
+        });
+    }
+}
+
+pub(crate) fn refresh_bridge_keys(app: &AppHandle) {
+    let key = crate::config::linear_key();
+    for session in app.state::<Chats>().0.lock().unwrap().values_mut() {
+        if let Some(bridge) = &mut session.bridge { bridge.set_key(&key); }
     }
 }

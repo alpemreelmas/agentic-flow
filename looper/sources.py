@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import NotRequired, Protocol, TypedDict
 
 import httpx
+from .linear_client import LinearClient
 
 
 class Task(TypedDict):
@@ -85,18 +86,37 @@ class LinearSource:
         self._team: dict[str, str] = {}
 
     def _gql(self, query: str, variables: dict | None = None) -> dict:
-        r = httpx.post(self.URL, json={"query": query, "variables": variables or {}}, headers=self.h, timeout=30)
-        r.raise_for_status()
-        body = r.json()
-        if body.get("errors"):  # Linear reports GraphQL errors with HTTP 200
-            raise RuntimeError(body["errors"])
-        return body["data"]
+        return LinearClient(self.h["Authorization"]).gql(query, variables)
 
     def fetch_ready(self) -> list[Task]:
-        q = """query($states:[String!]){ issues(first:100, filter:{state:{name:{in:$states}}}) {
-                 nodes { id identifier title description team { id } project { id } labels { nodes { name } } } } }"""
+        q = """query($states:[String!],$after:String){ issues(first:100, after:$after, filter:{state:{name:{in:$states}}}) {
+                 nodes { id identifier title description team { id } project { id } labels { nodes { name } } }
+                 pageInfo { hasNextPage endCursor } } }"""
         out = []
-        for n in self._gql(q, {"states": [self.ready, self.progress]})["issues"]["nodes"]:
+        variables = {"states": [self.ready, self.progress]}
+        while True:
+            page = self._gql(q, variables)["issues"]
+            out.extend(self._tasks(page["nodes"]))
+            info = page.get("pageInfo", {})
+            if not info.get("hasNextPage"):
+                return out
+            cursor = info.get("endCursor")
+            if not cursor or cursor == variables.get("after"):
+                raise RuntimeError("Linear pagination did not advance")
+            variables["after"] = cursor
+
+    def refresh_task(self, task_id: str) -> Task | None:
+        """Revalidate intake under the shared issue lock rather than using a stale poll snapshot."""
+        q = """query($id:String!){issue(id:$id){id identifier title description archivedAt state{name}
+            team{id} project{id} labels{nodes{name}}}}"""
+        issue = self._gql(q, {"id": task_id})["issue"]
+        if not issue or issue.get("archivedAt") or issue["state"]["name"] not in (self.ready, self.progress):
+            return None
+        return next(iter(self._tasks([issue])), None)
+
+    def _tasks(self, nodes) -> list[Task]:
+        out = []
+        for n in nodes:
             labels = [l["name"] for l in n["labels"]["nodes"]]
             if self.label not in labels:  # filtered here: the nested label filter syntax is unverified
                 continue

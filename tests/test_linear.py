@@ -126,3 +126,25 @@ def test_projects_listed_without_finished_ones_and_tasks_carry_project_id(linear
     assert src.list_projects() == [{"id": "p1", "name": "Web", "state": "started"}]
     tasks = src.fetch_ready()
     assert tasks[0]["project_id"] == "p1" and "project_id" not in tasks[1]
+
+
+def test_poll_paginates_and_locked_intake_rechecks_state_and_content(linear):
+    src = linear(FakeLinear())
+    a = {**issue("a", ["agent"], "updated description"), "state": {"name": "Todo"}, "archivedAt": None}
+    calls = []
+    def gql(query, variables):
+        calls.append(dict(variables))
+        if "issue(id:" in query:
+            return {"issue": a}
+        second = variables.get("after") == "cursor"
+        return {"issues": {"nodes": [a] if second else [issue("ignored", ["bug"])],
+                           "pageInfo": {"hasNextPage": not second, "endCursor": "cursor"}}}
+    src._gql = gql
+    assert [t["id"] for t in src.fetch_ready()] == ["a"]
+    assert calls[1]["after"] == "cursor"
+    assert src.refresh_task("a")["description"] == "updated description"
+    a["state"]["name"] = "Backlog"
+    assert src.refresh_task("a") is None
+    a["state"]["name"] = "Todo"
+    a["labels"]["nodes"] = []
+    assert src.refresh_task("a") is None

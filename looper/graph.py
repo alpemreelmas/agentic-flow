@@ -20,12 +20,14 @@ from langgraph.graph import END, START, StateGraph
 
 from .acp_executor import run_prompt
 from .events import RunLog, new_run_id
-from .registry import compose_prompt
+from .registry import LocalRegistry, compose_prompt
 from .review import Finding, findings_json, git_diff, parse_review
 from .triage import decide, format_comment, parse_triage, tracked_files, triage_prompt
 
 
 class TaskState(TypedDict, total=False):
+    skill_repo: str
+    skills: list[str]
     task_id: str
     run_id: str         # names the runs/<run_id>.jsonl event log
     role: str           # registry role name; default "implementer"
@@ -105,6 +107,9 @@ def build_graph(source, registry, *, runs_dir, agent_override: str | None, max_a
         return {"attempts": 0, "feedback": "", "feedback_kind": "", "review_notes": "", "summary": "",
                 "plan": "", "criteria": "", "parked": False, "park_comment": "", "pr_url": "", "run_id": run_id}
 
+    def scoped_registry(s):
+        return registry.for_workspace(s.get("skill_repo", s["cwd"]), s.get("skills", ())) if isinstance(registry, LocalRegistry) else registry
+
     async def triage(s: TaskState):
         if not triager:
             return {}
@@ -118,10 +123,11 @@ def build_graph(source, registry, *, runs_dir, agent_override: str | None, max_a
             cli = agent_override or role.cli
             log.emit("triage_start", role=triager, cli=cli)
             files = await asyncio.to_thread(tracked_files, s["cwd"])
-            prompt = compose_prompt(registry, role, triage_prompt(
+            scoped = scoped_registry(s)
+            prompt = compose_prompt(scoped, role, triage_prompt(
                 title=s["title"], labels=labels, description=s.get("description") or "",
                 has_human_verify=has_human_verify, forced_big=forced_big, files=files))
-            log.emit("prompt", role=triager, text=prompt)
+            log.emit("prompt", role=triager, text=prompt, skills=getattr(scoped, "used_skills", []))
             res = await run_prompt(cli, s["cwd"], prompt, timeout=timeout,
                                    auto_approve=role.permissions == "auto" and not ask_permissions,
                                    quiet=quiet, on_event=lambda ev: log.emit(**ev))
@@ -157,8 +163,9 @@ def build_graph(source, registry, *, runs_dir, agent_override: str | None, max_a
             role = registry.get_role(s.get("role") or "implementer")
             cli = agent_override or role.cli
             log.emit("attempt_start", attempt=s["attempts"] + 1, role=role.name, cli=cli)
-            prompt = compose_prompt(registry, role, _prompt(s))
-            log.emit("prompt", role=role.name, text=prompt)  # exactly what the agent was sent
+            scoped = scoped_registry(s)
+            prompt = compose_prompt(scoped, role, _prompt(s))
+            log.emit("prompt", role=role.name, text=prompt, skills=getattr(scoped, "used_skills", []))  # exactly what the agent was sent
             res = await run_prompt(cli, s["cwd"], prompt, timeout=timeout,
                                    auto_approve=role.permissions == "auto" and not ask_permissions,
                                    quiet=quiet, on_event=lambda ev: log.emit(**ev))
@@ -191,8 +198,9 @@ def build_graph(source, registry, *, runs_dir, agent_override: str | None, max_a
                 role = registry.get_role(name)
                 cli = agent_override or role.cli
                 log.emit("review_start", reviewer=name, cli=cli)
-                prompt = compose_prompt(registry, role, _review_prompt(s, diff))
-                log.emit("prompt", role=name, text=prompt)
+                scoped = scoped_registry(s)
+                prompt = compose_prompt(scoped, role, _review_prompt(s, diff))
+                log.emit("prompt", role=name, text=prompt, skills=getattr(scoped, "used_skills", []))
                 res = await run_prompt(cli, s["cwd"], prompt, timeout=timeout,
                                        auto_approve=role.permissions == "auto" and not ask_permissions,
                                        quiet=quiet, on_event=lambda ev: log.emit(**ev))

@@ -53,6 +53,6 @@ export function mentionedFiles(text: string, files: Set<string>): string[] {
 /** `#name` tokens that are known skills. */
 export function mentionedSkills(text: string, skills: Set<string>): string[] {
   const found = new Set<string>();
-  for (const m of text.matchAll(/(?:^|\s)#([\w-]+)/g)) if (skills.has(m[1])) found.add(m[1]);
+  for (const m of text.matchAll(/(?:^|\s)#([\w:./-]+)/g)) if (skills.has(m[1])) found.add(m[1]);
   return [...found];
 }

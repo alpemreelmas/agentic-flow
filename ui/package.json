@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "node --test src/runModel.test.ts src/markdown.test.ts src/autocomplete.test.ts",
+    "test": "node --test src/runModel.test.ts src/markdown.test.ts src/autocomplete.test.ts src/chat.test.ts src/skills.test.ts",
     "tauri": "tauri"
   },
   "dependencies": {

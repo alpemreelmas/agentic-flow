@@ -15,7 +15,7 @@ usable by several people and several AI clients (desktop chat, Codex CLI, Claude
 
 ## Conventions
 - Harness code does the writing; the agent never gets push rights or credentials (`deliver.py`).
-- Chat is read-only by policy; nothing a conversation says authorizes a code change.
+- Chat is read-only on the repository; approved application service tools may create/edit Linear tasks and explicitly submit them to the loop. Conversation does not authorize checkout changes.
 - Routing is plain code; the model only acts inside `work` and `review`.
 - A task whose Linear project matches no enabled workspace is not run (no guessing).
 - Tests: pytest (`tests/`), vitest for UI models. New modules ship with tests.
