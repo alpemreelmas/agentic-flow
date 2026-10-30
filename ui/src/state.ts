@@ -38,9 +38,7 @@ export const activeWs = () => ui.workspaces.find((w) => w.id === ui.activeWorksp
 /** Runs of the selected workspace (all when none is selected). Runs from before workspaces existed have no name and show everywhere. */
 export const inScope = (r: Run) => { const w = activeWs(); return !w || !r.workspace || r.workspace === w.name; };
 export const sortedRuns = () => [...runs.values()].filter(inScope).sort((a, b) => b.startedAt - a.startedAt);
-export const STAGES = ["TRIAGE", "IMPLEMENT", "VERIFY", "REVIEW", "DELIVER"];
-const STAGE_ICON = ["checklist", "code", "fact_check", "rate_review", "rocket_launch"];
-export const stageIcon = (i: number) => STAGE_ICON[i];
+export const STAGES = ["Triage", "Geliştirme", "Doğrulama", "İnceleme", "Teslim"];
 
 /** Furthest stage a run has reached, from the items it holds (-1: none yet). */
 export function stageOf(run: Run): number {
@@ -57,23 +55,28 @@ export function stageOf(run: Run): number {
 }
 
 export const hasError = (r: Run) => r.items.some((i) => i.kind === "error" || (i.kind === "deliver" && !i.ok));
-export const prUrl = (r: Run) => r.items.find((i) => i.kind === "deliver" && i.ok && i.url);
+export function prUrl(r: Run): string | undefined {
+  const d = r.items.find((i) => i.kind === "deliver" && i.ok && i.url);
+  return d?.kind === "deliver" ? d.url : undefined;
+}
 /** Design status vocabulary on top of the three the model knows. */
 export type Shown = "running" | "needs_human" | "review" | "failed";
 export const shown = (r: Run): Shown => (r.status === "needs_human" && hasError(r) ? "failed" : r.status);
-export const SHOWN_STYLE: Record<Shown, { label: string; dot: string; chip: string; text: string }> = {
-  running: { label: "RUNNING", dot: "bg-secondary", chip: "bg-secondary/10 text-secondary", text: "text-secondary" },
-  needs_human: { label: "NEEDS HUMAN", dot: "bg-tertiary", chip: "bg-tertiary/10 text-tertiary", text: "text-tertiary" },
-  review: { label: "IN REVIEW", dot: "bg-tertiary-container", chip: "bg-tertiary-container/20 text-tertiary", text: "text-tertiary" },
-  failed: { label: "FAILED", dot: "bg-error", chip: "bg-error-container/30 text-error", text: "text-error" },
+export const SHOWN_STYLE: Record<Shown, { label: string; pill: string; text: string }> = {
+  running: { label: "Çalışıyor", pill: "pill-accent", text: "text-accent" },
+  needs_human: { label: "İnsan bekliyor", pill: "pill-warning", text: "text-warning" },
+  review: { label: "İncelemede", pill: "pill-neutral", text: "text-soft" },
+  failed: { label: "Hata", pill: "pill-negative", text: "text-negative" },
 };
 
 export function elapsed(r: Run): string {
   const s = Math.max(0, Math.floor((r.endedAt ?? Date.now() / 1000) - r.startedAt));
-  return s >= 3600 ? `${Math.floor(s / 3600)}s ${Math.floor((s % 3600) / 60)}d` : `${String(Math.floor(s / 60)).padStart(2, "0")}m ${String(s % 60).padStart(2, "0")}s`;
+  return s >= 3600 ? `${Math.floor(s / 3600)} sa ${Math.floor((s % 3600) / 60)} dk` : `${Math.floor(s / 60)} dk ${s % 60} sn`;
 }
 export function ago(ts: number): string {
   const s = Math.max(0, Math.floor(Date.now() / 1000 - ts));
-  return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}d` : `${Math.floor(s / 3600)}sa`;
+  return s < 60 ? `${s} sn` : s < 3600 ? `${Math.floor(s / 60)} dk` : s < 86400 ? `${Math.floor(s / 3600)} sa` : `${Math.floor(s / 86400)} gün`;
 }
 export const shortId = (r: Run) => r.title.match(/^[A-Z]+-\d+/)?.[0] ?? r.id.replace(/^\d{8}T\d{6}-/, "").slice(0, 14);
+/** The title without the issue id the row already shows beside it. */
+export const plainTitle = (r: Run) => r.title.replace(/^[A-Z]+-\d+\s*[:·-]?\s*/, "") || r.title;

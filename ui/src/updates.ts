@@ -24,12 +24,12 @@ async function check() {
 
 export async function initUpdates() {
   box = document.createElement("aside");
-  box.className = "fixed bottom-4 right-4 z-50 rounded border border-outline-variant bg-surface-container p-3 text-sm max-w-md shadow-lg";
+  box.className = "pop fixed bottom-4 right-4 z-50 rounded-card border border-border bg-raised p-3 text-body max-w-md";
   box.setAttribute("aria-label", "Uygulama güncellemeleri");
   text = document.createElement("span");
   text.setAttribute("role", "status");
   button = document.createElement("button");
-  button.className = "ml-3 text-primary underline";
+  button.className = "ml-3 link underline";
   button.textContent = "Güncelleme kontrol et";
   button.onclick = async () => {
     if (!version) return void check();

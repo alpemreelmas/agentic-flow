@@ -1,73 +1,123 @@
-// Overview screen: design/genel_bak_sabah_ekran, filled from run logs only.
+// Overview screen: what is waiting on a person, and where the runs stand on the loop. Filled from run logs only.
 import { act, html } from "../tpl.ts";
-import { SHOWN_STYLE, ago, hasError, prUrl, schedule, shortId, shown, sortedRuns, ui } from "../state.ts";
+import { mini } from "../pipeline.ts";
+import { SHOWN_STYLE, STAGES, ago, hasError, plainTitle, prUrl, schedule, shortId, shown, sortedRuns, stageOf, ui } from "../state.ts";
 import type { Run } from "../runModel.ts";
 
 act("open-run", (el) => { ui.selected = el.dataset.id!; ui.following = false; ui.page = "runs"; schedule(); });
 
 const today = () => new Date().setHours(0, 0, 0, 0) / 1000;
 
-function card(label: string, n: number, icon: string, tone: string, sub: string): HTMLElement {
-  return html`<div class="p-space-md rounded bg-surface-container-low hover:bg-surface-container transition-colors shadow-sm">
-    <div class="flex items-start justify-between">
-      <div class="flex flex-col gap-1">
-        <span class="font-label-sm text-label-sm uppercase ${tone === "text-secondary" || tone === "text-primary" ? "text-outline" : tone}">${label}</span>
-        <span class="font-headline-lg text-headline-lg ${tone === "text-secondary" || tone === "text-primary" ? "text-on-surface" : tone} font-semibold tracking-tight">${n}</span>
-      </div>
-      <div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center ${tone}"><span class="material-symbols-outlined text-[18px]">${icon}</span></div>
-    </div>
-    <div class="mt-3 pt-2 font-code-sm text-code-sm text-on-surface-variant truncate">${sub}</div>
+/** Why a run stopped, in one line, from the event that stopped it. */
+function waitingReason(r: Run): string {
+  for (const i of [...r.items].reverse()) {
+    if (i.kind === "error") return i.error;
+    if (i.kind === "deliver" && !i.ok) return i.note || "Teslim başarısız";
+    if (i.kind === "verify" && !i.ok) return `Doğrulama başarısız: ${i.command}`;
+    if (i.kind === "triage" && i.decision !== "proceed") {
+      const what = i.decision === "needs_info" ? "Bilgi gerekli" : "Onay gerekli";
+      return i.summary ? `${what}: ${i.summary}` : what;
+    }
+  }
+  return "İnsan kararı bekliyor";
+}
+
+const pill = (r: Run) => {
+  const st = SHOWN_STYLE[shown(r)];
+  return html`<span class="pill ${st.pill}">${st.label}</span>`;
+};
+
+function runRow(r: Run): HTMLElement {
+  return html`<div data-act="open-run" data-id="${r.id}" class="run-row">
+    <span class="id-cell num text-body text-soft truncate">${shortId(r)}</span>
+    <span class="title-cell text-body text-ink truncate">${plainTitle(r)}</span>
+    ${mini(r)}
+    <span class="justify-self-start">${pill(r)}</span>
+    <span class="age-cell num text-small text-muted text-right whitespace-nowrap">${ago(r.endedAt ?? r.startedAt)}</span>
   </div>`;
 }
 
-function runRow(r: Run): HTMLElement {
-  const st = SHOWN_STYLE[shown(r)];
-  const last = r.items.length ? "" : "";
-  void last;
-  return html`<div data-act="open-run" data-id="${r.id}" class="p-space-md rounded bg-surface-container-low hover:bg-surface-container transition-all shadow-sm flex items-center gap-3 cursor-pointer">
-    <span class="h-2 w-2 rounded-full flex-shrink-0 ${st.dot}"></span>
-    <span class="font-code-sm text-code-sm text-secondary font-medium flex-shrink-0">${shortId(r)}</span>
-    <span class="font-headline-sm text-headline-sm text-on-surface truncate flex-1">${r.title}</span>
-    <span class="px-1.5 py-0.5 rounded font-label-sm text-label-sm ${st.chip}">${st.label}</span>
-    <span class="font-code-sm text-code-sm text-outline flex-shrink-0">${ago(r.endedAt ?? r.startedAt)} önce</span>
+function attentionRow(r: Run): HTMLElement {
+  return html`<div data-act="open-run" data-id="${r.id}" class="run-row tall">
+    <span class="id-cell num text-body text-soft truncate">${shortId(r)}</span>
+    <div class="title-cell min-w-0"><div class="text-body text-ink truncate">${plainTitle(r)}</div><div class="text-small text-muted truncate">${waitingReason(r)}</div></div>
+    <span class="justify-self-start">${pill(r)}</span>
+    <button data-act="open-run" data-id="${r.id}" class="btn btn-sm">İncele</button>
   </div>`;
+}
+
+function kpi(label: string, n: number, sub: string): HTMLElement {
+  return html`<div class="kpi"><div class="min-w-0"><div class="text-body text-soft truncate">${label}</div><div class="text-small text-muted truncate" title="${sub}">${sub}</div></div><div class="num text-section !font-normal ${n ? "text-ink" : "text-muted"}">${n}</div></div>`;
+}
+
+/** The loop line as a board: each run sits at the furthest stage it reached. */
+function board(all: Run[]): HTMLElement {
+  const box = html`<section class="panel" aria-labelledby="board-title">
+    <div class="panel-head"><h2 id="board-title" class="text-card text-ink">Döngü hattı</h2><span class="text-small text-muted">Her run ulaştığı son aşamada, <span class="num">${all.length}</span> run</span></div>
+    <div class="board"></div>
+  </section>`;
+  const cols = box.querySelector(".board")!;
+  STAGES.forEach((name, i) => {
+    const here = all.filter((r) => Math.max(stageOf(r), 0) === i);
+    const col = html`<div class="board-col">
+      <div class="text-small text-muted truncate">${name}</div>
+      <div class="num text-section !font-normal ${here.length ? "text-ink" : "text-muted"}">${here.length}</div>
+      <div class="board-runs mt-1.5"></div>
+    </div>`;
+    const list = col.querySelector(".board-runs")!;
+    here.slice(0, 3).forEach((r) => list.append(html`<button data-act="open-run" data-id="${r.id}" class="board-run" title="${r.title}"><span class="dot ${SHOWN_STYLE[shown(r)].text} ${r.status === "running" ? "live" : ""}"></span><span class="truncate">${shortId(r)}</span></button>`));
+    if (here.length > 3) list.append(html`<div class="text-small text-muted mt-0.5"><span class="num">+${here.length - 3}</span> run daha</div>`);
+    cols.append(col);
+  });
+  return box;
+}
+
+function finding(attention: Run[], running: number): string {
+  if (attention.length) {
+    const failed = attention.filter(hasError).length;
+    return `${attention.length} run insan bekliyor${failed ? `, ${failed} tanesi hatayla durdu` : ""}.`;
+  }
+  return running ? `Bekleyen iş yok, ${running} run çalışıyor.` : "Bekleyen iş yok.";
 }
 
 export function overviewPage(): HTMLElement {
   const all = sortedRuns();
   const done = all.filter((r) => r.status === "review" && (r.endedAt ?? 0) >= today());
   const prs = all.filter((r) => prUrl(r));
+  const drafts = prs.filter((r) => r.items.some((i) => i.kind === "deliver" && i.draft)).length;
   const human = all.filter((r) => r.status === "needs_human" && !hasError(r));
   const failed = all.filter((r) => hasError(r));
   const running = all.filter((r) => r.status === "running");
   const attention = all.filter((r) => r.status === "needs_human");
-  const page = html`<div class="flex flex-col w-full">
-    <div class="relative px-space-xl pt-space-lg pb-space-md bg-surface-container-lowest overflow-hidden">
-      <div class="absolute -top-24 right-1/4 w-96 h-36 bg-primary-container/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="flex flex-wrap items-center justify-between gap-space-md relative z-10">
-        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${ui.service.running ? "bg-secondary animate-pulse" : "bg-outline"}"></span><span class="font-headline-md text-headline-md text-on-surface tracking-tight">Genel Bakış</span><span class="font-code-sm text-code-sm text-on-surface-variant px-1.5 py-0.5 rounded bg-surface-container-high">Morning Sync</span></div>
-        <div class="flex items-center gap-space-sm px-2.5 py-1 rounded bg-surface-container-low text-on-surface-variant font-code-sm text-code-sm shadow-sm"><span class="material-symbols-outlined text-[14px] text-secondary">update</span><span>${ui.service.running ? ui.service.detail || ui.service.phase : "servis kapalı"}</span></div>
-      </div>
-      <p class="mt-2 text-on-surface-variant font-body-sm text-body-sm flex items-center gap-1.5"><span class="text-secondary font-code-sm text-code-sm">●</span>${running.length} run aktif çalışıyor.</p>
+  const page = html`<div class="canvas">
+    <div class="title-row">
+      <div class="min-w-0"><h1 class="text-title text-ink">Genel Bakış</h1><p class="text-body text-soft mt-1">${finding(attention, running.length)}</p></div>
     </div>
-    <div class="px-space-xl py-space-lg"><div id="cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-md"></div></div>
-    <div class="px-space-xl pb-space-xl flex flex-col gap-space-md">
-      <div class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-tertiary">priority_high</span><h2 class="font-headline-sm text-headline-sm text-on-surface">Dikkat Gerekiyor</h2><span class="font-code-sm text-code-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant">${attention.length} Beklemede</span></div>
-      <div id="attention" class="flex flex-col gap-space-sm"></div>
-      <div class="flex items-center gap-2 pt-space-md"><span class="material-symbols-outlined text-[18px] text-outline">history</span><h2 class="font-headline-sm text-headline-sm text-on-surface">Son Aktivite Akışı</h2><span class="font-code-sm text-code-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant">Canlı JSONL</span></div>
-      <div id="recent" class="flex flex-col gap-space-sm"></div>
+    <section class="panel" aria-labelledby="att-title">
+      <div class="panel-head"><h2 id="att-title" class="text-card text-ink">Dikkat gerekiyor</h2><span class="num text-small text-muted">${attention.length}</span></div>
+      <div id="attention"></div>
+    </section>
+    <div id="board"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-[var(--gap)]">
+      <section class="panel flex flex-col" aria-labelledby="recent-title">
+        <div class="panel-head"><h2 id="recent-title" class="text-card text-ink">Son aktivite</h2><button data-act="nav" data-page="runs" class="link">Tüm runlar (<span class="num">${all.length}</span>)</button></div>
+        <div id="recent" class="flex-1 flex flex-col"></div>
+      </section>
+      <div id="cards" class="kpis" aria-label="Özet"></div>
     </div>
   </div>`;
   page.querySelector("#cards")!.append(
-    card("Bugün Biten", done.length, "task_alt", "text-secondary", `${all.length} run kayıtlı`),
-    card("PR Açılan", prs.length, "merge", "text-primary", `${prs.filter((r) => r.items.some((i) => i.kind === "deliver" && i.draft)).length} draft`),
-    card("İnsan Bekleyen", human.length, "shield_person", "text-tertiary", human[0]?.title ?? "—"),
-    card("Hata Veren", failed.length, "error", "text-error", failed[0]?.title ?? "—"));
+    kpi("Bugün biten", done.length, `${all.length} run kayıtlı`),
+    kpi("PR açılan", prs.length, `${drafts} draft`),
+    kpi("İnsan bekleyen", human.length, human[0] ? plainTitle(human[0]) : "—"),
+    kpi("Hata veren", failed.length, failed[0] ? plainTitle(failed[0]) : "—"));
+  page.querySelector("#board")!.replaceWith(board(all));
   const att = page.querySelector("#attention")!;
-  if (!attention.length) att.append(html`<p class="text-outline font-body-sm text-body-sm">İnsan bekleyen run yok.</p>`);
-  attention.forEach((r) => att.append(runRow(r)));
+  if (!attention.length) att.append(html`<p class="empty">İnsan bekleyen run yok.</p>`);
+  attention.slice(0, 4).forEach((r) => att.append(attentionRow(r)));
+  if (attention.length > 4) att.append(html`<div class="px-5 py-2.5 border-t border-rule"><button data-act="nav" data-page="runs" class="link"><span class="num">${attention.length}</span> run'ın tümü</button></div>`);
   const rec = page.querySelector("#recent")!;
-  if (!all.length) rec.append(html`<p class="text-outline font-body-sm text-body-sm">Henüz run yok.</p>`);
-  all.slice(0, 10).forEach((r) => rec.append(runRow(r)));
+  if (!all.length) rec.append(html`<p class="empty">Henüz run yok. Servis çalışınca burada görünür.</p>`);
+  all.slice(0, 5).forEach((r) => rec.append(runRow(r)));
   return page;
 }
