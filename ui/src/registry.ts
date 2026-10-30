@@ -18,7 +18,7 @@ let saved = ""; // text on disk
 let message = "";
 let rerender: () => void = () => {};
 
-const dirty = () => draft !== saved;
+export const dirty = () => draft !== saved;
 const statusText = () => message || (dirty() ? "Değişiklik kaydedilmedi (●)" : "Güncel");
 
 function updateStatus() {

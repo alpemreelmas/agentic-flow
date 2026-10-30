@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./style.css";
+import { initUpdates } from "./updates.ts";
 import { html } from "./tpl.ts";
 import { header, refreshService, sidebar, tryStartOnce } from "./shell.ts";
 import { initRegistry, registryPage } from "./registry.ts";
@@ -58,6 +59,7 @@ async function main() {
   await initRegistry(schedule);
   await loadSettings();
   await tryStartOnce();
+  if (!import.meta.env.DEV) void initUpdates();
   setInterval(refreshService, 3000);
 }
 

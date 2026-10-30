@@ -62,7 +62,7 @@ pub fn data_dir() -> PathBuf {
         return PathBuf::from(d);
     }
     let repo = repo_root();
-    if repo.join("registry").is_dir() {
+    if cfg!(debug_assertions) && repo.join("registry").is_dir() {
         return repo;
     }
     let base = if cfg!(windows) {

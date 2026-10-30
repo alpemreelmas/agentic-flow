@@ -17,6 +17,7 @@ use std::{
 mod chat;
 mod config;
 mod service;
+mod updates;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -237,6 +238,8 @@ fn stop_service() -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updates::Updates::default())
         .manage(Watcher::default())
         .manage(chat::Chats::default())
         .setup(|app| {
@@ -254,6 +257,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            updates::check_update,
+            updates::install_update,
             default_runs_dir,
             start_watch,
             default_registry_dir,

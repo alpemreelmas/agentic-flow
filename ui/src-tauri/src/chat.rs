@@ -25,6 +25,14 @@ struct Session {
 #[derive(Default)]
 pub struct Chats(Mutex<HashMap<String, Session>>);
 
+impl Chats {
+    pub fn idle_guard(&self) -> Result<impl Drop + '_, String> {
+        let guard = self.0.lock().unwrap();
+        if !guard.is_empty() { return Err("Önce açık sohbetleri kapatın.".into()); }
+        Ok(guard)
+    }
+}
+
 #[derive(Clone, Serialize)]
 struct ChatEvent {
     chat_id: String,

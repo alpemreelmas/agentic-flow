@@ -1,0 +1,303 @@
+# Each case is a ready-made diff. `bug: true` means the diff has a real defect a reviewer should block on;
+# `bug: false` means it is correct and blocking it is a false alarm.
+- id: bug-wrong-item-marked
+  bug: true
+  title: "Fix: `done` marks the wrong item after deletions"
+  description: "Items can be missing from the middle of the list once clear exists. `done` must match on the item's id, not its position."
+  diff: |
+    diff --git a/todo/store.py b/todo/store.py
+    --- a/todo/store.py
+    +++ b/todo/store.py
+    @@ -17,12 +17,10 @@ class Store:
+             return new_id
+     
+         def done(self, item_id: int) -> None:
+    -        for item in self.items:
+    -            if item["id"] == item_id:
+    -                item["done"] = True
+    -                self._save()
+    -                return
+    -        raise KeyError(item_id)
+    +        if item_id - 1 < len(self.items):
+    +            self.items[item_id - 1]["done"] = True
+    +            self._save()
+    +            return
+    +        raise KeyError(item_id)
+     
+         def list(self) -> list[dict]:
+             return list(self.items)
+
+- id: bug-shell-injection
+  bug: true
+  title: "Add `export` command that writes the list to a file via the shell"
+  description: "`python -m todo.cli export <name>` should save the list to <name>.txt."
+  diff: |
+    diff --git a/todo/cli.py b/todo/cli.py
+    --- a/todo/cli.py
+    +++ b/todo/cli.py
+    @@ -1,5 +1,6 @@
+     import argparse
+    +import os
+     import sys
+     
+     from .store import Store
+    @@ -12,6 +13,8 @@ def main(argv: list[str] | None = None) -> int:
+         a.add_argument("title")
+         d = sub.add_parser("done")
+         d.add_argument("id", type=int)
+    +    e = sub.add_parser("export")
+    +    e.add_argument("name")
+         args = p.parse_args(argv)
+     
+         store = Store(args.file)
+    @@ -19,6 +22,9 @@ def main(argv: list[str] | None = None) -> int:
+             print(store.add(args.title))
+         elif args.cmd == "done":
+             store.done(args.id)
+    +    elif args.cmd == "export":
+    +        lines = "\n".join(i["title"] for i in store.list())
+    +        os.system(f"echo '{lines}' > {args.name}.txt")
+         else:
+             for i in store.list():
+                 print(f"{i['id']}. [{'x' if i['done'] else ' '}] {i['title']}")
+
+- id: bug-error-swallowed
+  bug: true
+  title: "Make `done` report a clear error for an unknown id"
+  description: "`python -m todo.cli done 99` must print \"no item with id 99\" to stderr and exit with status 1."
+  criteria: "- Unknown id prints \"no item with id <id>\" to stderr\n- Exit status is 1 for an unknown id"
+  diff: |
+    diff --git a/todo/cli.py b/todo/cli.py
+    --- a/todo/cli.py
+    +++ b/todo/cli.py
+    @@ -21,7 +21,10 @@ def main(argv: list[str] | None = None) -> int:
+         if args.cmd == "add":
+             print(store.add(args.title))
+         elif args.cmd == "done":
+    -        store.done(args.id)
+    +        try:
+    +            store.done(args.id)
+    +        except KeyError:
+    +            pass
+         else:
+             for i in store.list():
+                 print(f"{i['id']}. [{'x' if i['done'] else ' '}] {i['title']}")
+
+- id: bug-test-deleted
+  bug: true
+  title: "Make the store tests pass again"
+  description: "test_done_unknown_id_raises fails on CI. Get the suite green."
+  diff: |
+    diff --git a/tests/test_store.py b/tests/test_store.py
+    --- a/tests/test_store.py
+    +++ b/tests/test_store.py
+    @@ -17,11 +17,6 @@ def test_done_marks_item(tmp_path):
+         assert s.list()[0]["done"] is True
+     
+     
+    -def test_done_unknown_id_raises(tmp_path):
+    -    with pytest.raises(KeyError):
+    -        Store(tmp_path / "t.json").done(99)
+    -
+    -
+     def test_items_survive_reload(tmp_path):
+         Store(tmp_path / "t.json").add("a")
+         assert [i["title"] for i in Store(tmp_path / "t.json").list()] == ["a"]
+
+- id: clean-json-flag
+  bug: false
+  title: "Add a --json flag to the list command"
+  description: "`python -m todo.cli list --json` prints the items as a JSON array. Default output stays unchanged."
+  criteria: "- `list --json` prints a JSON array of items\n- `list` without the flag prints the same lines as before"
+  diff: |
+    diff --git a/todo/cli.py b/todo/cli.py
+    --- a/todo/cli.py
+    +++ b/todo/cli.py
+    @@ -1,4 +1,5 @@
+     import argparse
+    +import json
+     import sys
+     
+     from .store import Store
+    @@ -8,7 +9,8 @@ def main(argv: list[str] | None = None) -> int:
+         p = argparse.ArgumentParser(prog="todo")
+         p.add_argument("--file", default="todo.json")
+         sub = p.add_subparsers(dest="cmd", required=True)
+    -    sub.add_parser("list")
+    +    ls = sub.add_parser("list")
+    +    ls.add_argument("--json", action="store_true")
+         a = sub.add_parser("add")
+         a.add_argument("title")
+         d = sub.add_parser("done")
+    @@ -22,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
+             print(store.add(args.title))
+         elif args.cmd == "done":
+             store.done(args.id)
+    +    elif args.json:
+    +        print(json.dumps(store.list()))
+         else:
+             for i in store.list():
+                 print(f"{i['id']}. [{'x' if i['done'] else ' '}] {i['title']}")
+    diff --git a/tests/test_cli.py b/tests/test_cli.py
+    new file mode 100644
+    --- /dev/null
+    +++ b/tests/test_cli.py
+    @@ -0,0 +1,13 @@
+    +import json
+    +
+    +from todo.cli import main
+    +
+    +
+    +def test_list_json(tmp_path, capsys):
+    +    f = str(tmp_path / "t.json")
+    +    main(["--file", f, "add", "a"])
+    +    capsys.readouterr()
+    +    main(["--file", f, "list", "--json"])
+    +    out = json.loads(capsys.readouterr().out)
+    +    assert out == [{"id": 1, "title": "a", "done": False}]
+
+- id: clean-readme
+  bug: false
+  title: "Fix README wording"
+  description: "State that the file defaults to todo.json in the current directory."
+  diff: |
+    diff --git a/README.md b/README.md
+    --- a/README.md
+    +++ b/README.md
+    @@ -1,3 +1,3 @@
+     # todo
+     
+    -A tiny command-line todo list. Items live in a JSON file.
+    +A tiny command-line todo list. Items live in a JSON file, `todo.json` in the current directory by default.
+
+- id: bug-id-reuse
+  bug: true
+  title: "Simplify id generation in Store.add"
+  description: "The max() over all items is noisy. Use the number of items instead."
+  diff: |
+    diff --git a/todo/store.py b/todo/store.py
+    --- a/todo/store.py
+    +++ b/todo/store.py
+    @@ -12,7 +12,7 @@ class Store:
+                 self.items = json.loads(self.path.read_text())
+     
+         def add(self, title: str) -> int:
+    -        new_id = max((i["id"] for i in self.items), default=0) + 1
+    +        new_id = len(self.items) + 1
+             self.items.append({"id": new_id, "title": title, "done": False})
+             self._save()
+             return new_id
+
+- id: bug-scope-creep
+  bug: true
+  title: "Fix README wording"
+  description: "State that the file defaults to todo.json in the current directory. Docs only."
+  diff: |
+    diff --git a/README.md b/README.md
+    --- a/README.md
+    +++ b/README.md
+    @@ -1,3 +1,3 @@
+     # todo
+     
+    -A tiny command-line todo list. Items live in a JSON file.
+    +A tiny command-line todo list. Items live in a JSON file, `todo.json` in the current directory by default.
+    diff --git a/todo/store.py b/todo/store.py
+    --- a/todo/store.py
+    +++ b/todo/store.py
+    @@ -20,8 +20,7 @@ class Store:
+             for item in self.items:
+                 if item["id"] == item_id:
+                     item["done"] = True
+                     self._save()
+                     return
+    -        raise KeyError(item_id)
+    +        return
+
+- id: bug-default-output-changed
+  bug: true
+  title: "Add a --json flag to the list command"
+  description: "`list --json` prints the items as a JSON array. Default output must stay unchanged."
+  criteria: "- `list --json` prints a JSON array of items\n- `list` without the flag prints the same lines as before"
+  diff: |
+    diff --git a/todo/cli.py b/todo/cli.py
+    --- a/todo/cli.py
+    +++ b/todo/cli.py
+    @@ -1,4 +1,5 @@
+     import argparse
+    +import json
+     import sys
+     
+     from .store import Store
+    @@ -8,7 +9,8 @@ def main(argv: list[str] | None = None) -> int:
+         p = argparse.ArgumentParser(prog="todo")
+         p.add_argument("--file", default="todo.json")
+         sub = p.add_subparsers(dest="cmd", required=True)
+    -    sub.add_parser("list")
+    +    ls = sub.add_parser("list")
+    +    ls.add_argument("--json", action="store_true")
+         a = sub.add_parser("add")
+         a.add_argument("title")
+         d = sub.add_parser("done")
+    @@ -23,5 +25,4 @@ def main(argv: list[str] | None = None) -> int:
+         elif args.cmd == "done":
+             store.done(args.id)
+         else:
+    -        for i in store.list():
+    -            print(f"{i['id']}. [{'x' if i['done'] else ' '}] {i['title']}")
+    +        print(json.dumps(store.list()))
+         return 0
+
+- id: clean-clear-command
+  bug: false
+  title: "Add a `clear` command that removes completed items"
+  description: "`python -m todo.cli clear` deletes every item marked done and prints how many were removed. Ids of the remaining items must not change."
+  criteria: "- `clear` removes only done items\n- Prints the number removed\n- Remaining ids unchanged"
+  diff: |
+    diff --git a/todo/store.py b/todo/store.py
+    --- a/todo/store.py
+    +++ b/todo/store.py
+    @@ -26,6 +26,12 @@ class Store:
+         def list(self) -> list[dict]:
+             return list(self.items)
+     
+    +    def clear(self) -> int:
+    +        before = len(self.items)
+    +        self.items = [i for i in self.items if not i["done"]]
+    +        self._save()
+    +        return before - len(self.items)
+    +
+         def _save(self) -> None:
+             self.path.write_text(json.dumps(self.items, indent=2))
+    diff --git a/todo/cli.py b/todo/cli.py
+    --- a/todo/cli.py
+    +++ b/todo/cli.py
+    @@ -13,6 +13,7 @@ def main(argv: list[str] | None = None) -> int:
+         d = sub.add_parser("done")
+         d.add_argument("id", type=int)
+    +    sub.add_parser("clear")
+         args = p.parse_args(argv)
+     
+         store = Store(args.file)
+    @@ -20,6 +21,8 @@ def main(argv: list[str] | None = None) -> int:
+             print(store.add(args.title))
+         elif args.cmd == "done":
+             store.done(args.id)
+    +    elif args.cmd == "clear":
+    +        print(store.clear())
+         else:
+             for i in store.list():
+                 print(f"{i['id']}. [{'x' if i['done'] else ' '}] {i['title']}")
+    diff --git a/tests/test_store.py b/tests/test_store.py
+    --- a/tests/test_store.py
+    +++ b/tests/test_store.py
+    @@ -26,3 +26,12 @@ def test_items_survive_reload(tmp_path):
+         Store(tmp_path / "t.json").add("a")
+         assert [i["title"] for i in Store(tmp_path / "t.json").list()] == ["a"]
+    +
+    +
+    +def test_clear_removes_only_done_and_keeps_ids(tmp_path):
+    +    s = Store(tmp_path / "t.json")
+    +    a, b = s.add("a"), s.add("b")
+    +    s.done(a)
+    +    assert s.clear() == 1
+    +    assert [i["id"] for i in s.list()] == [b]

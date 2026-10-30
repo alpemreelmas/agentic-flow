@@ -35,3 +35,8 @@ ui/src-tauri/binaries/
 
 .DS_Store
 design/*/screen.png
+
+# eval results are local measurements
+evals/results/*.json
+evals/fixture/**/__pycache__/
+evals/fixture/.pytest_cache/

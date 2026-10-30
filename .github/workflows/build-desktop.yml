@@ -1,0 +1,131 @@
+name: Build desktop
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-arm64
+            os: macos-14
+            bundles: app,dmg
+          - name: linux-x64
+            os: ubuntu-22.04
+            bundles: deb,appimage
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libdbus-1-dev libfuse2 xdg-utils
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ui/src-tauri -> target
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: uv sync --locked
+
+      - name: Install frontend dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Build bundled Python service
+        run: bash scripts/build-sidecar.sh
+
+      - name: Smoke test bundled service
+        run: dist/looper-service --help
+
+      - name: Configure signed updater release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/configure-update-release.py
+
+      - name: Build desktop installers
+        working-directory: ui
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+          TAURI_SIGNING_PRIVATE_KEY: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri build -- --locked --bundles ${{ matrix.bundles }}
+
+      - name: Archive macOS application
+        if: runner.os == 'macOS'
+        run: ditto -c -k --sequesterRsrc --keepParent 'ui/src-tauri/target/release/bundle/macos/Linear Looper.app' 'ui/src-tauri/target/release/bundle/Linear-Looper-macos-arm64.zip'
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: linear-looper-${{ matrix.name }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ui/src-tauri/target/release/bundle/*.zip
+            ui/src-tauri/target/release/bundle/dmg/*.dmg
+            ui/src-tauri/target/release/bundle/deb/*.deb
+            ui/src-tauri/target/release/bundle/appimage/*.AppImage
+            ui/src-tauri/target/release/bundle/macos/*.tar.gz
+            ui/src-tauri/target/release/bundle/macos/*.sig
+            ui/src-tauri/target/release/bundle/appimage/*.sig
+
+  release:
+    name: Publish signed update
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: linear-looper-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate complete update manifest
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/update-manifest.py
+      - name: Publish release assets then expose manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" --draft --title "$RELEASE_TAG" --generate-notes
+          find release-assets -type f -exec gh release upload "$RELEASE_TAG" {} +
+          gh release upload "$RELEASE_TAG" latest.json
+          gh release edit "$RELEASE_TAG" --draft=false --latest
