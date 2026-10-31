@@ -1,6 +1,7 @@
 // Settings screen, bound to config.json + the OS keychain.
 import { invoke } from "@tauri-apps/api/core";
-import { act, html } from "../tpl.ts";
+import { act, html, selectEl } from "../tpl.ts";
+import { icon } from "../icons.ts";
 import { catalog, refreshSkills } from "../skills.ts";
 import { schedule, ui, type Workspace } from "../state.ts";
 

@@ -137,7 +137,7 @@ export function itemRow(item: Item, key: string): HTMLElement | null {
     }
     case "prompt": {
       const head = html`<div class="px-space-md py-2 bg-surface-container flex items-center justify-between font-code-sm text-code-sm"><span class="text-on-surface-variant">Prompt → ${item.role}${item.skills?.length ? " · Skills: " + item.skills.join(", ") : ""}</span><span class="material-symbols-outlined text-[16px] text-outline">expand_more</span></div>`;
-      return row("bg-surface-container-highest text-on-surface", "notes", collapsible(key, head, [pre(item.text, "text-on-surface-variant")], "bg-surface-container-lowest"));
+      return row("note", "text-muted", collapsible(key, head, [pre(item.text, "text-soft")]));
     }
     case "message":
       return row("agent", "text-muted", said("Ajan", markdownEl(item.text, "message")));
@@ -157,7 +157,7 @@ export function itemRow(item: Item, key: string): HTMLElement | null {
             if (url?.startsWith("https://linear.app/")) void invoke("open_url", { url });
           });
         }
-        return row("bg-secondary/10 text-secondary", "build", result);
+        return row("terminal", "text-positive", result);
       }
       const body: Node[] = [];
       if (item.input) body.push(pre(item.input, "text-ink"));
@@ -248,11 +248,7 @@ function visibleOnly(_: "errors", item: Item): boolean {
 export function runsPage(): HTMLElement {
   const old = document.getElementById("timelineScrollArea");
   const prev = old ? { top: old.scrollTop, atBottom: old.scrollHeight - old.scrollTop - old.clientHeight < 40 } : null;
-<<<<<<< HEAD
-  const wrap = html`<div class="flex h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-surface-container-lowest"></div>`;
-=======
   const wrap = html`<div class="panes"></div>`;
->>>>>>> 07517705e5f715c426709e6861f744b050a45ee0
   wrap.append(listPane(), detailPane(prev));
   return wrap;
 }

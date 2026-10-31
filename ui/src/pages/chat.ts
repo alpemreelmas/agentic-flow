@@ -171,9 +171,9 @@ const pickOptions = (c: Chat) => {
 
 function toolbar(c: Chat): HTMLElement {
   const locked = c.status !== "ready" || c.pending;
-  const sel = "h-7 px-1.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm focus:outline-none max-w-[180px]";
-  const bar = html`<div id="chat-tools" class="px-space-md pt-space-sm bg-surface-container-lowest flex flex-wrap items-center gap-2"></div>`;
-  bar.append(html`<p class="w-full text-outline font-body-sm text-body-sm" role="status">${c.bridge}</p>`);
+  const sel = "field !h-7 !w-auto max-w-[180px] text-small";
+  const bar = html`<div id="chat-tools" class="flex flex-wrap items-center gap-2"></div>`;
+  bar.append(html`<p class="w-full text-muted text-small" role="status">${c.bridge}</p>`);
   if (c.modes && c.modes.available.length) {
     const m = html`<select aria-label="Agent modu" ${locked ? "disabled" : ""} title="Mod" class="${sel}">${c.modes.available.map((x) => html`<option value="${x.id}" title="${x.description ?? ""}" ${x.id === c.modes!.current ? "selected" : ""}>${x.name}</option>`)}</select>`;
     (m as HTMLSelectElement).onchange = (e) => {
@@ -191,32 +191,20 @@ function toolbar(c: Chat): HTMLElement {
         .catch(err => { c.pending = false; c.error = String(err); refreshChat(); });
     };
     if (o.type === "boolean") {
-<<<<<<< HEAD
-      const b = html`<label class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant cursor-pointer" title="${o.description ?? ""}"><input ${locked ? "disabled" : ""} type="checkbox" ${o.value === true ? "checked" : ""}/>${o.name}</label>`;
-      (b.querySelector("input") as HTMLInputElement).onchange = (e) => set((e.target as HTMLInputElement).checked);
-      bar.append(b);
-    } else if (o.choices.length) {
-      const el = html`<select aria-label="${o.name}" ${locked ? "disabled" : ""} data-category="${o.category}" title="${o.name}${o.description ? " — " + o.description : ""}" class="${sel}">${o.choices.map((x) => html`<option value="${x.value}" title="${x.description ?? ""}" ${x.value === o.value ? "selected" : ""}>${o.category === "model" || o.category === "thought_level" ? x.name : `${o.name}: ${x.name}`}</option>`)}</select>`;
-      (el as HTMLSelectElement).onchange = (e) => set((e.target as HTMLSelectElement).value);
-      bar.append(el);
-    }
-  }
-  const defaults = c.defaultSkills;
-  if (defaults.length) bar.append(html`<span class="text-xs text-secondary" title="${defaults.join(", ")}">Skills · ${defaults.length} proje varsayılanı</span>`);
-  if (!bar.children.length) bar.append(html`<span class="font-label-sm text-label-sm text-outline">Bu ajan model/mod seçeneği bildirmedi.</span>`);
-=======
-      const b = html`<label class="flex items-center gap-1.5 text-small text-soft cursor-pointer" title="${o.description ?? ""}"><input type="checkbox" class="switch" ${o.value === true ? "checked" : ""}/>${o.name}</label>`;
+      const b = html`<label class="flex items-center gap-1.5 text-small text-soft cursor-pointer" title="${o.description ?? ""}"><input ${locked ? "disabled" : ""} type="checkbox" class="switch" ${o.value === true ? "checked" : ""}/>${o.name}</label>`;
       (b.querySelector("input") as HTMLInputElement).onchange = (e) => set((e.target as HTMLInputElement).checked);
       bar.append(b);
     } else if (o.choices.length) {
       const named = o.category === "model" || o.category === "thought_level";
       const el = selectEl(sel, o.choices.map((x) => ({ value: x.value, label: named ? x.name : `${o.name}: ${x.name}`, title: x.description })), String(o.value), { title: `${o.name}${o.description ? " — " + o.description : ""}`, "aria-label": o.name });
+      el.disabled = locked;
+      el.dataset.category = o.category ?? "";
       el.onchange = () => set(el.value);
       bar.append(el);
     }
   }
+  if (c.defaultSkills.length) bar.append(html`<span class="text-small text-soft" title="${c.defaultSkills.join(", ")}">Skills · ${c.defaultSkills.length} proje varsayılanı</span>`);
   if (!bar.children.length) bar.append(html`<span class="text-small text-muted">Bu ajan model veya mod seçeneği bildirmedi.</span>`);
->>>>>>> 07517705e5f715c426709e6861f744b050a45ee0
   return bar;
 }
 
@@ -292,30 +280,15 @@ function sidebar(): HTMLElement {
 
 function conversation(prevTop: { top: number; atBottom: boolean } | null): HTMLElement {
   const c = current ? chats.get(current) : undefined;
-<<<<<<< HEAD
-  if (!c) return html`<section class="flex-1 flex items-center justify-center bg-surface text-outline font-body-md text-body-md">Bir sohbet seçin ya da yenisini başlatın.</section>`;
-  const sec = html`<section class="flex-1 flex flex-col min-w-0 bg-surface overflow-hidden">
-    <div class="h-12 px-space-lg flex items-center justify-between bg-surface-container-low/40 shadow-sm">
-      <span class="font-headline-md text-headline-md text-on-surface tracking-tight font-semibold truncate">${c.title}</span>
-      <span id="chat-status" class="px-2 py-0.5 rounded font-label-sm text-label-sm ${c.status === "closed" ? "bg-error-container/30 text-error" : "bg-secondary/10 text-secondary"}">${statusLabel[c.status].toUpperCase()}</span>
-    </div>
-    <div class="flex-1 overflow-y-auto p-space-lg flex flex-col gap-space-lg" id="chat-scroll"></div>
-    <div id="chat-error" role="status" class="px-space-md text-error text-sm"></div>
-    <div id="chat-tools"></div>
-    <div id="chat-composer" class="relative p-space-md bg-surface-container-lowest flex items-end gap-space-sm">
-      <textarea id="chat-input" rows="2" ${c.status === "closed" ? "disabled" : ""} placeholder="${c.status === "closed" ? "Sohbet kapandı" : "Bir fikir yazın…  @ dosya · / komut · # skill  (Enter gönderir, Shift+Enter yeni satır)"}" class="flex-1 resize-none rounded bg-surface-container text-on-surface font-body-md text-body-md p-2 placeholder:text-outline focus:outline-none focus:bg-surface-container-high"></textarea>
-      <span id="chat-submit">${c.status === "busy"
-        ? html`<button data-act="chat-cancel" class="h-9 px-3 rounded bg-surface-container-high hover:bg-surface-container-highest text-error font-label-md text-label-md">Durdur</button>`
-        : html`<button data-act="chat-send" ${c.status !== "ready" ? "disabled" : ""} class="h-9 px-3 rounded bg-primary-container hover:bg-primary-container/90 text-on-primary-container font-label-md text-label-md disabled:opacity-50">Gönder</button>`}</span>
-=======
   if (!c) return html`<section class="pane-main items-center justify-center text-muted text-body px-6 text-center">Bir sohbet seçin ya da yenisini başlatın.</section>`;
   const statusPill = c.status === "closed" ? "pill-negative" : c.status === "busy" ? "pill-accent" : "pill-neutral";
   const sec = html`<section class="pane-main" aria-label="Sohbet">
     <div class="h-[56px] flex-none px-6 flex items-center justify-between gap-4 border-b border-border">
       <h2 class="text-card text-ink truncate">${c.title}</h2>
-      <span class="pill ${statusPill}">${c.status === "busy" ? html`<span class="dot live"></span>` : ""}${statusLabel[c.status]}</span>
+      <span id="chat-status" class="pill ${statusPill}">${c.status === "busy" ? html`<span class="dot live"></span>` : ""}${statusLabel[c.status]}</span>
     </div>
     <div class="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3.5" id="chat-scroll"></div>
+    <div id="chat-error" role="status" class="px-6 text-negative text-small">${c.error}</div>
     <div class="flex-none px-6 pb-5">
       <div id="chat-composer" class="relative panel focus-within:border-control">
         <textarea id="chat-input" rows="2" aria-label="Mesaj" ${c.status === "closed" ? "disabled" : ""} placeholder="${c.status === "closed" ? "Sohbet kapandı" : "Bir fikir yazın.  @ dosya, / komut, # skill"}" class="block w-full resize-none bg-transparent text-ink text-body px-3.5 pt-3 pb-1 focus:outline-none"></textarea>
@@ -323,13 +296,12 @@ function conversation(prevTop: { top: number; atBottom: boolean } | null): HTMLE
           <div id="chat-tools"></div>
           <div class="flex items-center gap-3 flex-none">
             <span class="text-small text-muted topbar-hide">Enter gönderir, Shift+Enter yeni satır</span>
-            ${c.status === "busy"
+            <span id="chat-submit">${c.status === "busy"
               ? html`<button data-act="chat-cancel" class="btn btn-danger">Durdur</button>`
-              : html`<button data-act="chat-send" ${c.status !== "ready" ? "disabled" : ""} class="btn btn-primary">Gönder</button>`}
+              : html`<button data-act="chat-send" ${c.status !== "ready" || c.pending ? "disabled" : ""} class="btn btn-primary">Gönder</button>`}</span>
           </div>
         </div>
       </div>
->>>>>>> 07517705e5f715c426709e6861f744b050a45ee0
     </div></section>`;
   const area = sec.querySelector("#chat-scroll") as HTMLElement;
   if (c.status === "closed" && c.error) area.append(html`<div class="panel px-3.5 py-2.5"><div class="text-body font-medium text-negative">Sohbet kapandı</div><div class="num text-small text-soft mt-0.5 break-words">${c.error}</div></div>`);
@@ -368,14 +340,16 @@ export function chatPage(): HTMLElement {
       if (stamp !== controlsStamp) {
         controlsStamp = stamp;
         mounted.querySelector("#chat-tools")!.replaceWith(toolbar(c));
-        mounted.querySelector("#chat-status")!.textContent = statusLabel[c.status].toUpperCase();
+        const status = mounted.querySelector("#chat-status")!;
+        status.textContent = statusLabel[c.status];
+        status.className = `pill ${c.status === "closed" ? "pill-negative" : c.status === "busy" ? "pill-accent" : "pill-neutral"}`;
         mounted.querySelector("#chat-error")!.textContent = c.error;
         const input = mounted.querySelector<HTMLTextAreaElement>("#chat-input")!;
         input.disabled = c.status === "closed";
         if (c.status === "busy" && !c.draft) input.value = "";
         mounted.querySelector("#chat-submit")!.replaceChildren(c.status === "busy"
-          ? html`<button data-act="chat-cancel" class="chat-stop">Durdur <kbd>Esc</kbd></button>`
-          : html`<button data-act="chat-send" ${c.status !== "ready" || c.pending ? "disabled" : ""} class="chat-send">Gönder <kbd>↵</kbd></button>`);
+          ? html`<button data-act="chat-cancel" class="btn btn-danger">Durdur <kbd>Esc</kbd></button>`
+          : html`<button data-act="chat-send" ${c.status !== "ready" || c.pending ? "disabled" : ""} class="btn btn-primary">Gönder <kbd>↵</kbd></button>`);
       }
     }
     const stamp = [...chats.values()].map(c => `${c.id}:${c.status}`).join();
@@ -385,11 +359,7 @@ export function chatPage(): HTMLElement {
   rows.clear(); controlsStamp = ""; listStamp = "";
   const old = document.getElementById("chat-scroll");
   const prev = old ? { top: old.scrollTop, atBottom: old.scrollHeight - old.scrollTop - old.clientHeight < 40 } : null;
-<<<<<<< HEAD
-  const wrap = html`<div id="chat-page" class="flex h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-surface-container-lowest"></div>`;
-=======
   const wrap = html`<div class="panes"></div>`;
->>>>>>> 07517705e5f715c426709e6861f744b050a45ee0
   wrap.append(sidebar(), conversation(prev));
   mounted = wrap; mountedId = current;
   if (current) chats.get(current)?.dirtyItems.clear();

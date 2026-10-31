@@ -32,7 +32,9 @@ export function selectEl(cls: string, opts: { value: string; label: string; titl
   sel.className = cls;
   for (const [k, v] of Object.entries(attrs)) sel.setAttribute(k, v);
   for (const o of opts) {
-    const op = new Option(o.label, o.value);
+    const op = document.createElement("option");
+    op.textContent = o.label;
+    op.value = o.value;
     if (o.title) op.title = o.title;
     sel.append(op);
   }
