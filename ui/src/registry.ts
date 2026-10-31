@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalog, refreshSkills, type Skill } from "./skills.ts";
 import { activeWs, ui } from "./state.ts";
 import { act, html } from "./tpl.ts";
+import { icon } from "./icons.ts";
 
 type Kind = "role" | "skill";
 interface Entry { kind: Kind; name: string }
@@ -25,7 +26,7 @@ let message = "";
 let rerender: () => void = () => {};
 
 export const dirty = () => draft !== saved;
-const statusText = () => message || (dirty() ? "Değişiklik kaydedilmedi (●)" : "Güncel");
+const statusText = () => message || (dirty() ? "Kaydedilmemiş değişiklik" : "Güncel");
 
 function updateStatus() {
   const s = document.getElementById("editor-status");
@@ -33,9 +34,9 @@ function updateStatus() {
 }
 
 function statusBadge(): HTMLElement {
-  const bad = message.startsWith("Not saved");
-  const tone = bad ? "bg-error/15 text-error" : dirty() ? "bg-tertiary/15 text-tertiary" : "bg-secondary/10 text-secondary";
-  return html`<span id="editor-status" class="font-label-sm text-label-sm px-2 py-0.5 rounded flex items-center gap-1 font-semibold ${tone}"><span class="w-1.5 h-1.5 rounded-full bg-current"></span>${statusText()}</span>`;
+  const bad = message.startsWith("Kaydedilmedi");
+  const tone = bad ? "pill-negative" : dirty() ? "pill-warning" : "pill-neutral";
+  return html`<span id="editor-status" class="pill ${tone}" role="status">${statusText()}</span>`;
 }
 
 export async function initRegistry(onChange: () => void) {
@@ -51,7 +52,7 @@ async function refresh() {
 
 async function open(e: Entry) {
   if (dirty()) {
-    message = "Not saved: save or revert the current file before opening another.";
+    message = "Kaydedilmedi: başka dosya açmadan önce kaydedin veya geri alın.";
     updateStatus();
     return;
   }
@@ -61,7 +62,7 @@ async function open(e: Entry) {
     preview = null;
     message = "";
   } catch (err) {
-    message = `Not saved: ${err}`;
+    message = `Kaydedilmedi: ${err}`;
   }
   rerender();
 }
@@ -71,26 +72,26 @@ async function save() {
   try {
     await invoke("write_entry", { dir, kind: current.kind, name: current.name, content: draft });
     saved = draft;
-    message = "Saved";
+    message = "Kaydedildi";
   } catch (err) {
-    message = `Not saved: ${err}`;
+    message = `Kaydedilmedi: ${err}`;
   }
   updateStatus();
 }
 
 async function create(kind: Kind, name: string) {
   if (dirty()) {
-    message = "Not saved: save or revert the current file first.";
+    message = "Kaydedilmedi: önce bu dosyayı kaydedin veya geri alın.";
     return rerender();
   }
   if (entries.some((e) => e.kind === kind && e.name === name)) {
-    message = `Not saved: ${kind} "${name}" already exists.`;
+    message = `Kaydedilmedi: "${name}" zaten var.`;
     return rerender();
   }
   try {
     await invoke("write_entry", { dir, kind, name, content: TEMPLATES[kind](name) });
   } catch (err) {
-    message = `Not saved: ${err}`;
+    message = `Kaydedilmedi: ${err}`;
     return rerender();
   }
   await refresh();
@@ -135,43 +136,34 @@ act("reg-new", (el) => {
 
 function entryRow(e: Entry): HTMLElement {
   const active = current?.kind === e.kind && current.name === e.name;
-  const icon = e.kind === "role" ? "smart_toy" : "terminal";
-  return html`<button data-act="reg-open" data-kind="${e.kind}" data-name="${e.name}" class="w-full text-left px-space-sm py-2 rounded flex items-center gap-2.5 min-w-0 transition-all ${active ? "bg-surface-container-high text-on-surface shadow-sm relative" : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"}">
-    ${active ? html`<div class="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-r"></div>` : ""}
-    <span class="material-symbols-outlined ${active ? "text-primary" : e.kind === "skill" ? "text-secondary" : "text-on-surface-variant"} text-[16px]">${icon}</span>
-    <div class="truncate"><p class="${e.kind === "skill" ? "font-code-sm text-code-sm" : "font-body-sm text-body-sm font-medium leading-none"} text-on-surface">${e.name}</p>${e.kind === "role" ? html`<p class="font-code-sm text-code-sm text-outline mt-0.5">roles/${e.name}.md</p>` : ""}</div>
+  return html`<button data-act="reg-open" data-kind="${e.kind}" data-name="${e.name}" class="list-row !py-2 ${active ? "active" : ""}" aria-current="${active ? "true" : "false"}">
+    <div class="text-body text-ink truncate">${e.name}</div>
+    <div class="num text-small text-muted truncate">${e.kind === "role" ? `roles/${e.name}.md` : `skills/${e.name}/SKILL.md`}</div>
   </button>`;
 }
 
 function group(title: string, kind: Kind): HTMLElement {
   const list = entries.filter((x) => x.kind === kind);
-  const box = html`<div class="px-space-sm pt-space-xs pb-space-sm flex flex-col gap-1">
-    <div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold">${title}</span><span class="font-code-sm text-code-sm text-outline-variant">${list.length}</span></div>
-    <div class="flex items-center gap-1 mt-1">
-      <input id="new-${kind}" autocomplete="off" placeholder="yeni-${kind === "role" ? "rol" : "skill"}-adı" class="flex-1 min-w-0 bg-surface-container rounded px-2 py-1.5 text-on-surface font-code-sm text-code-sm placeholder:text-outline focus:outline-none"/>
-      <button data-act="reg-new" data-kind="${kind}" class="px-space-sm py-1.5 rounded bg-surface-container-low hover:bg-surface-container text-primary font-body-sm text-body-sm flex items-center gap-1 transition-colors"><span class="material-symbols-outlined text-[16px]">add_box</span>Ekle</button>
+  const box = html`<div>
+    <div class="px-4 pt-4 pb-2 flex items-baseline justify-between gap-2"><h2 class="text-body font-semibold text-ink">${title}</h2><span class="num text-small text-muted">${list.length}</span></div>
+    <div class="reg-list border-t border-rule"></div>
+    <div class="px-4 py-2.5 flex items-center gap-2">
+      <input id="new-${kind}" autocomplete="off" aria-label="Yeni ${kind === "role" ? "rol" : "skill"} adı" placeholder="yeni-${kind === "role" ? "rol" : "skill"}-adı" class="field field-sm field-mono min-w-0"/>
+      <button data-act="reg-new" data-kind="${kind}" class="btn btn-sm">${icon("add", 12)}Ekle</button>
     </div></div>`;
-  const anchor = box.children[0];
-  list.reverse().forEach((e) => anchor.after(entryRow(e)));
+  const rows = box.querySelector(".reg-list")!;
+  list.forEach((e) => rows.append(entryRow(e)));
   return box;
 }
 
 export function registryPage(): HTMLElement {
-  const page = html`<div class="grid grid-cols-12 min-h-[calc(100vh-2.5rem)] bg-surface text-on-surface">
-    <div class="col-span-4 xl:col-span-3 bg-surface-container-lowest flex flex-col justify-between">
-      <div class="flex flex-col">
-        <div class="px-space-md py-space-sm bg-surface-container-low flex items-center justify-between">
-          <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">account_tree</span><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Kayıt Defteri</span></div>
-          <span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container-high text-secondary font-medium">${entries.length} Kaynak</span>
-        </div>
-        <div id="reg-groups"></div>
-      </div>
-      <div class="p-space-sm bg-surface-container-low m-space-xs rounded shadow-sm">
-        <div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Registry</span><span class="font-code-sm text-code-sm text-secondary">${entries.length} tanım yüklü</span></div>
-        <div class="font-code-sm text-code-sm text-outline truncate" title="${dir}">${dir}</div>
-      </div>
-    </div>
-    <div class="col-span-8 xl:col-span-9 bg-surface flex flex-col" id="reg-editor"></div>
+  const page = html`<div class="panes">
+    <aside class="pane-list" aria-label="Roller ve skill'ler">
+      <div class="px-4 pt-4"><h1 class="text-section text-ink">Registry</h1><p class="text-small text-muted mt-0.5"><span class="num">${entries.length}</span> tanım, döngü her run'da bunları okur.</p></div>
+      <div id="reg-groups" class="flex-1 overflow-y-auto min-h-0"></div>
+      <div class="px-4 py-2.5 border-t border-border num text-small text-muted truncate" title="${dir}">${dir}</div>
+    </aside>
+    <section class="pane-main" id="reg-editor" aria-label="Düzenleyici"></section>
   </div>`;
   page.querySelector("#reg-groups")!.append(group("Roller (Roles)", "role"), group("Beceriler (Skills)", "skill"), library());
   const ed = page.querySelector("#reg-editor")!;
@@ -184,22 +176,21 @@ export function registryPage(): HTMLElement {
     return page;
   }
   if (!current) {
-    ed.append(html`<div class="p-space-xl text-outline font-body-md text-body-md">${message || "Düzenlemek için bir rol veya skill seçin."}</div>`);
+    ed.append(html`<div class="flex-1 flex items-center justify-center px-6 text-center text-body ${message ? "text-negative" : "text-muted"}">${message || "Düzenlemek için bir rol veya skill seçin."}</div>`);
     return page;
   }
-  const bar = html`<div class="px-space-md py-space-sm bg-surface-container flex flex-wrap items-center justify-between gap-space-sm shadow-sm z-10">
-    <div class="flex items-center gap-space-sm min-w-0">
-      <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container-highest text-on-surface font-code-sm text-code-sm"><span class="material-symbols-outlined text-primary text-[15px]">description</span><span class="font-semibold">${current.kind === "role" ? "roles" : "skills"}/${current.name}${current.kind === "role" ? ".md" : "/SKILL.md"}</span></div>
+  const bar = html`<div class="min-h-[56px] flex-none px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-border">
+    <div class="flex items-center gap-3 min-w-0">
+      <h2 class="num text-body font-medium text-ink truncate">${current.kind === "role" ? "roles" : "skills"}/${current.name}${current.kind === "role" ? ".md" : "/SKILL.md"}</h2>
       <span id="editor-status"></span>
-      <span class="text-outline-variant hidden sm:inline">•</span><span class="font-code-sm text-code-sm text-outline hidden sm:inline">UTF-8 • UNIX (LF)</span>
     </div>
-    <div class="flex items-center gap-space-sm">
-      <button data-act="reg-revert" class="px-3 py-1 rounded bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1.5 shadow-sm"><span class="material-symbols-outlined text-[15px]">undo</span>Geri Al</button>
-      <button data-act="reg-save" class="px-3.5 py-1 rounded bg-primary-container hover:bg-primary-container/90 text-on-primary-container font-body-sm text-body-sm font-semibold transition-all shadow-md flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">save</span>Kaydet<kbd class="ml-1 px-1 rounded bg-surface-container-lowest/40 font-code-sm text-code-sm">⌘S</kbd></button>
+    <div class="flex items-center gap-2">
+      <button data-act="reg-revert" class="btn">Geri al</button>
+      <button data-act="reg-save" class="btn btn-primary">Kaydet<kbd class="num text-small font-normal opacity-60">Ctrl S</kbd></button>
     </div>
   </div>`;
   bar.querySelector("#editor-status")!.replaceWith(statusBadge());
-  const wrap = html`<div class="flex-1 p-space-md flex flex-col"><textarea spellcheck="false" class="flex-1 min-h-[60vh] w-full bg-surface-container-lowest text-on-surface font-code-md text-code-md rounded-xl p-space-md shadow-md resize-none focus:outline-none"></textarea></div>`;
+  const wrap = html`<div class="flex-1 min-h-0 flex"><textarea id="reg-text" spellcheck="false" aria-label="Dosya içeriği" class="editor"></textarea></div>`;
   const area = wrap.querySelector("textarea")!;
   area.value = draft;
   area.oninput = () => { draft = area.value; message = ""; updateStatus(); };

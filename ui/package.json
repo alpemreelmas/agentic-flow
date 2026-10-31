@@ -10,12 +10,11 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/public-sans": "^5.3.0",
     "@tauri-apps/api": "^2",
     "dompurify": "^3.4.17",
-    "markdown-it": "^15.0.3",
-    "material-symbols": "^0.48.2"
+    "markdown-it": "^15.0.3"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

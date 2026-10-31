@@ -29,7 +29,7 @@ export async function initUpdates() {
   text = document.createElement("span");
   text.setAttribute("role", "status");
   button = document.createElement("button");
-  button.className = "ml-3 text-primary underline";
+  button.className = "ml-3 link underline";
   button.textContent = "Güncelleme kontrol et";
   button.onclick = async () => {
     if (!version) return void check();
