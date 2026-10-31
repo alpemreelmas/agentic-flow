@@ -8,7 +8,7 @@ import { initRegistry, registryPage } from "./registry.ts";
 import { applyEvent, type RunEvent } from "./runModel.ts";
 import { runs, schedule, setRenderer, sortedRuns, ui } from "./state.ts";
 import { overviewPage } from "./pages/overview.ts";
-import { queuePage } from "./pages/queue.ts";
+import { loadQueue, queuePage } from "./pages/queue.ts";
 import { chatPage, handleChatEvent } from "./pages/chat.ts";
 import { runsPage } from "./pages/runs.ts";
 import { loadSettings, settingsPage } from "./pages/settings.ts";
@@ -21,8 +21,8 @@ function render() {
   // Keep typing intact in the inputs a re-render would otherwise recreate.
   const active = document.activeElement as HTMLInputElement | null;
   const focus = active?.id ? { id: active.id, start: active.selectionStart, end: active.selectionEnd } : null;
-  const page = html`<div class="ml-64"><main class="relative pt-10 min-h-screen bg-surface"></main></div>`;
-  page.querySelector("main")!.append(PAGES[ui.page]());
+  const page = html`<main class="app-main"></main>`;
+  page.append(PAGES[ui.page]());
   root.replaceChildren(header(), sidebar(), page);
   if (focus) {
     const el = document.getElementById(focus.id) as HTMLInputElement | null;
@@ -34,12 +34,8 @@ function render() {
 }
 
 async function demo() {
-  const { DEMO } = await import("./demo.ts");
-  for (const [id, e] of DEMO) applyEvent(runs, id, e);
-  ui.service = { running: true, phase: "idle", detail: "next poll in 120s", pid: 41802, started_at: Date.now() / 1000 - 4000 };
-  ui.paths = { runs: "~/runs", registry: "~/registry" };
-  ui.lastEventAt = Date.now() / 1000;
-  schedule();
+  const { startDemo } = await import("./demo.ts");
+  await startDemo({ initRegistry: () => initRegistry(schedule), loadSettings, loadQueue, handleChatEvent });
 }
 
 async function main() {

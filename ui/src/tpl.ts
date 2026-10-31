@@ -25,6 +25,20 @@ export function html(strings: TemplateStringsArray, ...vals: Val[]): HTMLElement
   return t.content.firstElementChild as HTMLElement;
 }
 
+/** A <select> built through the DOM: the HTML parser drops the template's <slot> markers inside a select. */
+export function selectEl(cls: string, opts: { value: string; label: string; title?: string }[], value: string, attrs: Record<string, string> = {}): HTMLSelectElement {
+  const sel = document.createElement("select");
+  sel.className = cls;
+  for (const [k, v] of Object.entries(attrs)) sel.setAttribute(k, v);
+  for (const o of opts) {
+    const op = new Option(o.label, o.value);
+    if (o.title) op.title = o.title;
+    sel.append(op);
+  }
+  sel.value = value;
+  return sel;
+}
+
 // Click actions: markup says data-act="name", pages register handlers once.
 const actions = new Map<string, (el: HTMLElement) => void>();
 export function act(name: string, fn: (el: HTMLElement) => void) { actions.set(name, fn); }
