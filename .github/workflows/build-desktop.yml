@@ -83,7 +83,7 @@ jobs:
         env:
           UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: python3 scripts/configure-update-release.py
+        run: uv run python scripts/configure-update-release.py
 
       - name: Build desktop installers
         working-directory: ui
