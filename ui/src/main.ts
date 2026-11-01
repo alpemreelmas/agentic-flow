@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import "./style.css";
 import { initResources } from "./resources.ts";
 import { initUpdates } from "./updates.ts";
+import { getVersion } from "@tauri-apps/api/app";
+import { loadHealth, showFatal } from "./health.ts";
 import { html } from "./tpl.ts";
 import { header, refreshService, sidebar, tryStartOnce } from "./shell.ts";
 import { initRegistry, registryPage } from "./registry.ts";
@@ -64,8 +66,11 @@ async function main() {
   await initRegistry(schedule);
   await loadSettings();
   await tryStartOnce();
+  void getVersion().then((v) => { ui.version = v; schedule(); }).catch(() => {});
+  void loadHealth();
   if (!import.meta.env.DEV) void initUpdates();
   setInterval(refreshService, 3000);
 }
 
-main();
+window.addEventListener("unhandledrejection", (e) => console.error("unhandled rejection", e.reason));
+main().catch(showFatal);

@@ -8,7 +8,7 @@ let box: HTMLElement;
 let text: HTMLSpanElement;
 let button: HTMLButtonElement;
 
-async function check() {
+async function check(manual = false) {
   if (busy || version) return;
   busy = true;
   button.disabled = true;
@@ -18,7 +18,9 @@ async function check() {
     text.textContent = version ? `${version} indirildi. Kurmadan önce döngüyü durdurun, sohbetleri kapatın ve değişiklikleri kaydedin.` : "Uygulama güncel.";
     button.textContent = version ? "Kur ve yeniden başlat" : "Güncelleme kontrol et";
   } catch (error) {
-    text.textContent = `Güncelleme kontrol edilemedi: ${String(error)}`;
+    // Startup/periodic checks fail routinely (no release yet, offline, .deb): stay quiet, keep the reason in the tooltip.
+    text.textContent = manual ? `Güncelleme kontrol edilemedi: ${String(error)}` : "Güncelleme denetlenemedi.";
+    text.title = String(error);
   } finally { busy = false; button.disabled = false; }
 }
 
@@ -32,7 +34,7 @@ export async function initUpdates() {
   button.className = "ml-3 link underline";
   button.textContent = "Güncelleme kontrol et";
   button.onclick = async () => {
-    if (!version) return void check();
+    if (!version) return void check(true);
     if (dirty()) { text.textContent = "Registry değişikliklerini kaydedin veya geri alın."; return; }
     if (!window.confirm("Kaydedilmemiş ayarları ve sohbet taslaklarını kaydedin. Güncelleme kurulsun ve uygulama yeniden başlatılsın mı?")) return;
     button.disabled = true;

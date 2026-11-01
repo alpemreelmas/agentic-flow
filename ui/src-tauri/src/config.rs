@@ -219,9 +219,26 @@ pub fn set_linear_key(app: tauri::AppHandle, key: String) -> Result<(), String> 
     if key.is_empty() || key.contains(char::is_whitespace) {
         return Err("that does not look like an API key".into());
     }
-    entry()?.set_password(key).map_err(|e| e.to_string())?;
+    entry()?.set_password(key).map_err(keyring_message)?;
     crate::chat::refresh_bridge_keys(&app);
     Ok(())
+}
+
+fn keyring_message(e: keyring::Error) -> String {
+    let hint = if cfg!(target_os = "linux") {
+        " Linux'ta anahtar için çalışan bir Secret Service gerekir (gnome-keyring veya KWallet kurup oturumu açın)."
+    } else {
+        ""
+    };
+    format!("Anahtar sistem anahtarlığına kaydedilemedi: {e}.{hint}")
+}
+
+/// Whether the OS keychain is usable at all (a missing entry is fine, a missing service is not).
+pub fn keyring_ok() -> Result<(), String> {
+    match entry()?.get_password() {
+        Ok(_) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(keyring_message(e)),
+    }
 }
 
 #[tauri::command]

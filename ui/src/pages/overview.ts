@@ -3,6 +3,7 @@ import { act, html } from "../tpl.ts";
 import { mini } from "../pipeline.ts";
 import { SHOWN_STYLE, STAGES, ago, hasError, plainTitle, prUrl, schedule, shortId, shown, sortedRuns, stageOf, ui } from "../state.ts";
 import type { Run } from "../runModel.ts";
+import { setupPanel } from "../health.ts";
 
 act("open-run", (el) => { ui.selected = el.dataset.id!; ui.following = false; ui.page = "runs"; schedule(); });
 
@@ -93,6 +94,7 @@ export function overviewPage(): HTMLElement {
     <div class="title-row">
       <div class="min-w-0"><h1 class="text-title text-ink">Genel Bakış</h1><p class="text-body text-soft mt-1">${finding(attention, running.length)}</p></div>
     </div>
+    <div id="setup"></div>
     <section class="panel" aria-labelledby="att-title">
       <div class="panel-head"><h2 id="att-title" class="text-card text-ink">Dikkat gerekiyor</h2><span class="num text-small text-muted">${attention.length}</span></div>
       <div id="attention"></div>
@@ -111,6 +113,8 @@ export function overviewPage(): HTMLElement {
     kpi("PR açılan", prs.length, `${drafts} draft`),
     kpi("İnsan bekleyen", human.length, human[0] ? plainTitle(human[0]) : "—"),
     kpi("Hata veren", failed.length, failed[0] ? plainTitle(failed[0]) : "—"));
+  const setup = setupPanel();
+  if (setup) page.querySelector("#setup")!.replaceWith(setup); else page.querySelector("#setup")!.remove();
   page.querySelector("#board")!.replaceWith(board(all));
   const att = page.querySelector("#attention")!;
   if (!attention.length) att.append(html`<p class="empty">İnsan bekleyen run yok.</p>`);

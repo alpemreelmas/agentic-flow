@@ -16,12 +16,19 @@ impl Drop for Bridge {
     }
 }
 
+/// Bridge failures used to vanish into /dev/null; keep them next to the service log.
+fn bridge_log() -> Stdio {
+    let dir = crate::service::state_dir();
+    let _ = std::fs::create_dir_all(&dir);
+    std::fs::OpenOptions::new().create(true).append(true).open(dir.join("bridge.log")).map(Stdio::from).unwrap_or_else(|_| Stdio::null())
+}
+
 impl Bridge {
     pub fn start(app: AppHandle, chat_id: String, workspace: &crate::config::Workspace,
                  config: &crate::config::Config) -> Result<Self, String> {
         let mut cmd = crate::service::base_command();
         cmd.arg("--bridge-broker").env_remove("LINEAR_API_KEY")
-            .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
+            .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(bridge_log());
         let mut child = cmd.spawn().map_err(|_| "Linear araç köprüsü başlatılamadı")?;
         let input = child.stdin.take().ok_or("bridge stdin unavailable")?;
         let stdout = child.stdout.take().ok_or("bridge stdout unavailable")?;

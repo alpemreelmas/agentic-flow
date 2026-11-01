@@ -4,6 +4,7 @@ import { act, html, selectEl } from "../tpl.ts";
 import { icon } from "../icons.ts";
 import { catalog, refreshSkills } from "../skills.ts";
 import { schedule, ui, type Workspace } from "../state.ts";
+import { diagnosticsPanel, loadHealth } from "../health.ts";
 
 interface Config {
   workspaces: Workspace[]; active_workspace: string; label: string; ready: string; progress: string; review: string; blocked: string;
@@ -95,6 +96,7 @@ act("cfg-save", async () => {
     await invoke("set_config", { config: next });
     cfg = next;
     ui.workspaces = next.workspaces;
+    void loadHealth();
     message = "Kaydedildi. Değişiklik servisin bir sonraki başlatılışında geçerli olur.";
   } catch (e) {
     message = `Kaydedilmedi: ${e}`;
@@ -110,6 +112,7 @@ act("key-save", async () => {
     keyDraft = "";
     keySet = true;
     void loadProjects();
+    void loadHealth();
     message = "Linear anahtarı sistem anahtar zincirine kaydedildi.";
   } catch (e) {
     message = `Anahtar kaydedilmedi: ${e}`;
@@ -121,6 +124,7 @@ act("key-clear", async () => {
   try {
     await invoke("clear_linear_key");
     keySet = false;
+    void loadHealth();
     message = "Linear anahtarı sistem anahtar zincirinden silindi.";
   } catch (e) {
     message = `Silinemedi: ${e}`;
@@ -199,7 +203,8 @@ export function settingsPage(): HTMLElement {
       text("max_attempts", "Maksimum deneme"), text("timeout", "Adım zaman aşımı (sn)"), text("interval", "Poll aralığı (sn)"),
     ], `Görev başına en fazla ${cfg.max_attempts} deneme, adım başına ${Math.round(cfg.timeout / 60)} dk. Kuyruğa ${Math.round(cfg.interval / 60)} dk'da bir bakılır.`),
   );
-  blocks.append(html`<p class="num text-small text-muted pt-6 border-t border-border break-all">Linear Looper v0.1.0 · ${ui.paths.runs} · ${ui.paths.registry}</p>`);
+  blocks.append(diagnosticsPanel());
+  blocks.append(html`<p class="num text-small text-muted pt-6 border-t border-border break-all">Linear Looper v${ui.version || "?"} · ${ui.paths.runs} · ${ui.paths.registry}</p>`);
   return page;
 }
 

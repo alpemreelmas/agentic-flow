@@ -232,6 +232,66 @@ async fn check_connection() -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(service::check).await.map_err(|e| e.to_string())?
 }
 
+/// Python's tool checks plus the OS keychain (a missing Secret Service is the usual Linux snag).
+fn doctor_report() -> Result<serde_json::Value, String> {
+    let mut report: serde_json::Value = serde_json::from_str(&service::doctor()?).map_err(|e| e.to_string())?;
+    let keyring = config::keyring_ok();
+    let item = serde_json::json!({
+        "name": "anahtarlık",
+        "ok": keyring.is_ok(),
+        "detail": keyring.clone().err().unwrap_or_else(|| "kullanılabilir".into()),
+        "hint": if keyring.is_ok() { "" } else { "Linux: gnome-keyring veya KWallet kurup çalıştırın" },
+    });
+    if let Some(items) = report.get_mut("items").and_then(|i| i.as_array_mut()) {
+        items.push(item);
+    }
+    if keyring.is_err() {
+        report["ok"] = serde_json::Value::Bool(false);
+    }
+    Ok(report)
+}
+
+#[tauri::command]
+async fn doctor() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(|| doctor_report().map(|r| r.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn service_log(lines: Option<usize>) -> String {
+    service::log_tail(lines.unwrap_or(200).min(2000))
+}
+
+/// One pasteable block for bug reports: version, platform, paths, tool checks and the log tail.
+#[tauri::command]
+async fn diagnostics(app: AppHandle) -> String {
+    let version = app.package_info().version.to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        let status = service::status(&service::state_dir());
+        let doctor = doctor_report().map(|r| r.to_string()).unwrap_or_else(|e| format!("doctor failed: {e}"));
+        format!(
+            "Linear Looper v{version}\nOS: {} {}\nVeri klasörü: {}\nServis: {} ({})\n\nDoctor:\n{doctor}\n\nservice.log (son 80 satır):\n{}\n",
+            std::env::consts::OS,
+            std::env::consts::ARCH,
+            service::data_dir().display(),
+            status.phase,
+            status.detail,
+            service::log_tail(80),
+        )
+    })
+    .await
+    .unwrap_or_else(|e| format!("diagnostics failed: {e}"))
+}
+
+#[tauri::command]
+fn open_data_dir() -> Result<(), String> {
+    let dir = service::data_dir();
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let prog = if cfg!(target_os = "macos") { "open" } else if cfg!(windows) { "explorer" } else { "xdg-open" };
+    std::process::Command::new(prog).arg(dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn stop_service() -> Result<(), String> {
     service::stop(&service::state_dir())
@@ -239,6 +299,11 @@ fn stop_service() -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Some Linux GPU/driver combinations show a blank WebKit window; this costs little and avoids it.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -277,6 +342,10 @@ pub fn run() {
             start_service,
             stop_service,
             check_connection,
+            doctor,
+            service_log,
+            diagnostics,
+            open_data_dir,
             list_queue,
             chat::chat_start,
             chat::chat_send,

@@ -21,6 +21,9 @@ class LinearClient:
         except httpx.TimeoutException:
             raise LinearError("Linear request timed out; a mutation may have succeeded") from None
         except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (400, 401):
+                raise LinearError("Linear anahtarı geçersiz veya süresi dolmuş (HTTP "
+                                  f"{exc.response.status_code}); Ayarlar'dan yeni anahtar girin") from None
             raise LinearError(f"Linear returned HTTP {exc.response.status_code}; check connection and permissions") from None
         except (httpx.HTTPError, ValueError):
             raise LinearError("Linear connection failed; check your connection and retry") from None

@@ -21,6 +21,7 @@ export const ui = {
   serviceError: "", // why the last start failed (e.g. settings incomplete)
   lastEventAt: 0,
   paths: { runs: "", registry: "" },
+  version: "",
 };
 
 let render: () => void = () => {};

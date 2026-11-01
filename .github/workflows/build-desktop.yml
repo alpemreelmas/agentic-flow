@@ -62,11 +62,21 @@ jobs:
         working-directory: ui
         run: npm ci
 
+      - name: Python tests
+        run: uv run pytest -q
+
+      - name: Frontend tests
+        working-directory: ui
+        run: npm test
+
       - name: Build bundled Python service
         run: bash scripts/build-sidecar.sh
 
       - name: Smoke test bundled service
         run: dist/looper-service --help
+
+      - name: Smoke test doctor
+        run: dist/looper-service --doctor
 
       - name: Configure signed updater release
         if: startsWith(github.ref, 'refs/tags/v')

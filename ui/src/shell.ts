@@ -5,6 +5,7 @@ import { icon, mark, type IconName } from "./icons.ts";
 import { loadQueue } from "./pages/queue.ts";
 import { invoke as call } from "@tauri-apps/api/core";
 import { schedule, sortedRuns, ui, type Page } from "./state.ts";
+import { loadHealth } from "./health.ts";
 
 /** Surfaces why the service is down: setup's silent autostart refuses when settings are incomplete. */
 export async function tryStartOnce() {
@@ -19,7 +20,7 @@ export async function refreshService() {
       ui.serviceBusy = false;
       ui.serviceError = "";
     }
-  } catch { /* keep the last known status */ }
+  } catch (e) { console.error("service_status failed", e); /* keep the last known status */ }
   schedule();
 }
 
@@ -36,6 +37,19 @@ async function serviceAction(kind: "start" | "stop" | "restart") {
     ui.serviceError = String(e);
   }
   setTimeout(refreshService, 1500);
+  if (kind !== "stop") setTimeout(explainSilentExit, 6000);
+}
+
+/** The process can spawn and die at once (bad PATH, missing binary): show the log's last line instead of just "Kapalı". */
+async function explainSilentExit() {
+  await refreshService();
+  if (ui.service.running || ui.serviceError) return;
+  ui.serviceBusy = false;
+  try {
+    const last = (await invoke<string>("service_log", { lines: 5 })).split("\n").filter(Boolean).pop();
+    ui.serviceError = last ? `Servis kapandı: ${last}` : "Servis başlamadı. Ayarlar > Teşhis'ten log'a bakın.";
+  } catch { ui.serviceError = "Servis başlamadı. Ayarlar > Teşhis'ten log'a bakın."; }
+  schedule();
 }
 act("svc-start", () => serviceAction("start"));
 act("svc-stop", () => serviceAction("stop"));
@@ -43,6 +57,7 @@ act("svc-restart", () => serviceAction("restart"));
 act("nav", (el) => {
   ui.page = el.dataset.page as Page;
   if (ui.page === "queue") void loadQueue(); // fresh snapshot each time the page opens
+  if (ui.page === "overview") void loadHealth();
   schedule();
 });
 

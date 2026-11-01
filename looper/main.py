@@ -38,6 +38,10 @@ async def amain(a: argparse.Namespace):
         catalog = discover(a.registry, None if a.global_skills else a.repo)
         print(json.dumps({"skill": resolve(catalog, a.read_skill).json(), "content": read_text(Path(resolve(catalog, a.read_skill).path))} if a.read_skill else [s.json() for s in catalog]))
         return
+    if a.doctor:
+        from .doctor import report
+        print(report())
+        return
     if a.source == "linear" and not os.environ.get("LINEAR_API_KEY"):
         raise SystemExit("LINEAR_API_KEY is not set. Add the key in Ayarlar (it is stored in the system keychain).")
     source = FileSource(a.tasks) if a.source == "file" else LinearSource(
@@ -160,6 +164,7 @@ def cli():
     p.add_argument("--list-projects", action="store_true", help="print Linear projects as JSON, then exit")
     p.add_argument("--workspaces", default=None, help="workspaces.json: [{name, repo, project_id, enabled}]; replaces --repo")
     p.add_argument("--check", action="store_true", help="read-only Linear setup check, then exit")
+    p.add_argument("--doctor", action="store_true", help="check git/gh/node/agent CLIs, print JSON, then exit")
     p.add_argument("--repo", default=".")
     p.add_argument("--db", default="looper.db")
     p.add_argument("--state", default=".looper", help="dir for service.lock and status.json (the UI reads status.json)")

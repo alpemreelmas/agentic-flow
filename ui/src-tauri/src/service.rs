@@ -126,15 +126,63 @@ pub fn user_path() -> Option<String> {
 fn user_path_uncached() -> Option<String> {
     #[cfg(unix)]
     {
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
-        let out = Command::new(shell).args(["-ilc", "printf '__P__%s__P__' \"$PATH\""]).stdin(Stdio::null()).output().ok()?;
-        let text = String::from_utf8_lossy(&out.stdout).into_owned();
-        let start = text.find("__P__")? + 5;
-        let end = text[start..].find("__P__")? + start;
-        return Some(text[start..end].to_string());
+        let home = std::env::var("HOME").unwrap_or_default();
+        let base = login_shell_path().or_else(|| std::env::var("PATH").ok()).unwrap_or_default();
+        return Some(merge_path(&base, &home));
     }
     #[allow(unreachable_code)]
     None
+}
+
+/// The PATH a login shell would give a terminal. Bounded: a `.zshrc` that prompts or hangs must
+/// not stall the first start, so give up after a few seconds and let the caller fall back.
+#[cfg(unix)]
+fn login_shell_path() -> Option<String> {
+    use std::io::Read;
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
+    let mut child = Command::new(shell)
+        .args(["-ilc", "printf '__P__%s__P__' \"$PATH\""])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    let mut stdout = child.stdout.take()?;
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut s = String::new();
+        let _ = stdout.read_to_string(&mut s);
+        let _ = tx.send(s);
+    });
+    match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+        Ok(text) => {
+            let _ = child.wait();
+            let start = text.find("__P__")? + 5;
+            let end = text[start..].find("__P__")? + start;
+            Some(text[start..end].to_string())
+        }
+        Err(_) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            None
+        }
+    }
+}
+
+/// Appends the usual install locations (Homebrew, ~/.local/bin, cargo, npm-global) that a
+/// minimal GUI PATH lacks, keeping the base order and skipping what is already there.
+fn merge_path(base: &str, home: &str) -> String {
+    let mut parts: Vec<String> = base.split(':').filter(|p| !p.is_empty()).map(String::from).collect();
+    let mut extras: Vec<String> = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].map(String::from).to_vec();
+    if !home.is_empty() {
+        extras.extend([".local/bin", ".cargo/bin", ".npm-global/bin"].map(|d| format!("{home}/{d}")));
+    }
+    for e in extras {
+        if !parts.contains(&e) {
+            parts.push(e);
+        }
+    }
+    parts.join(":")
 }
 
 /// The bundled sidecar next to the app binary when installed; otherwise the dev checkout via uv.
@@ -157,7 +205,16 @@ pub fn base_command() -> Command {
     if let Some(p) = user_path() {
         cmd.env("PATH", p);
     }
+    scrub_appimage_env(&mut cmd);
     cmd
+}
+
+/// An AppImage points LD_LIBRARY_PATH at its own bundled libs; children (the sidecar, node, gh,
+/// agent CLIs) must not inherit that or they can load the wrong libraries.
+fn scrub_appimage_env(cmd: &mut Command) {
+    if cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_some() {
+        cmd.env_remove("LD_LIBRARY_PATH").env_remove("LD_PRELOAD");
+    }
 }
 
 fn service_command() -> Command {
@@ -196,6 +253,27 @@ fn run_json(flag: &str) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
+const LOG_MAX_BYTES: u64 = 2 * 1024 * 1024;
+
+/// Keep one previous generation (service.log.1) so the log cannot grow without bound.
+fn rotate_log(path: &Path, max: u64) {
+    if fs::metadata(path).map(|m| m.len() > max).unwrap_or(false) {
+        let _ = fs::rename(path, path.with_extension("log.1"));
+    }
+}
+
+/// Last `n` lines of the service log (empty when there is none yet).
+pub fn log_tail(n: usize) -> String {
+    let text = fs::read_to_string(state_dir().join("service.log")).unwrap_or_default();
+    let lines: Vec<&str> = text.lines().collect();
+    lines[lines.len().saturating_sub(n)..].join("\n")
+}
+
+/// Tool preflight (JSON from the Python side: git, gh, gh auth, node, agent CLIs).
+pub fn doctor() -> Result<String, String> {
+    run_json("--doctor")
+}
+
 /// Runs the loop's read-only Linear check with the saved settings and key; returns its output.
 pub fn check() -> Result<String, String> {
     let mut cmd = service_command();
@@ -214,6 +292,7 @@ pub fn start(state_dir: &Path) -> Result<ServiceStatus, String> {
         crate::config::load().validate().map_err(|e| format!("Ayarlar eksik: {e}"))?;
     }
     fs::create_dir_all(state_dir).map_err(|e| e.to_string())?;
+    rotate_log(&state_dir.join("service.log"), LOG_MAX_BYTES);
     let log = fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -276,6 +355,38 @@ mod tests {
     fn clean_stop_and_garbage_are_not_running() {
         assert!(!parse_status(r#"{"heartbeat":100,"phase":"stopped"}"#, 100.0).running);
         assert!(!parse_status("not json", 0.0).running);
+    }
+}
+
+#[cfg(test)]
+mod hygiene_tests {
+    use super::*;
+
+    #[test]
+    fn merge_path_appends_missing_dirs_once() {
+        let p = merge_path("/usr/bin:/bin", "/home/u");
+        assert!(p.starts_with("/usr/bin:/bin:"));
+        assert!(p.contains("/opt/homebrew/bin") && p.contains("/home/u/.local/bin"));
+        assert_eq!(p.matches("/usr/bin").count(), 1);
+    }
+
+    #[test]
+    fn merge_path_ignores_empty_home() {
+        let p = merge_path("", "");
+        assert!(!p.split(':').any(|d| d.starts_with("/.") || d.is_empty()), "{p}");
+    }
+
+    #[test]
+    fn oversized_log_rotates_to_one_backup() {
+        let d = std::env::temp_dir().join(format!("looper-log-{}", std::process::id()));
+        fs::create_dir_all(&d).unwrap();
+        let f = d.join("service.log");
+        fs::write(&f, vec![b'x'; 100]).unwrap();
+        rotate_log(&f, 1000);
+        assert!(f.exists() && !d.join("service.log.1").exists());
+        rotate_log(&f, 10);
+        assert!(!f.exists() && d.join("service.log.1").exists());
+        let _ = fs::remove_dir_all(&d);
     }
 }
 

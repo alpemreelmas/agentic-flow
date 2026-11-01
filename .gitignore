@@ -40,3 +40,7 @@ design/*/screen.png
 evals/results/*.json
 evals/fixture/**/__pycache__/
 evals/fixture/.pytest_cache/
+
+# local/dev data
+/workspaces.json
+/tasks.json
