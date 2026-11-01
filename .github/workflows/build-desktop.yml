@@ -138,4 +138,13 @@ jobs:
           gh release create "$RELEASE_TAG" --draft --title "$RELEASE_TAG" --generate-notes
           find release-assets -type f -exec gh release upload "$RELEASE_TAG" {} +
           gh release upload "$RELEASE_TAG" latest.json
+          # Never expose a manifest whose download links do not exist as assets.
+          gh release view "$RELEASE_TAG" --json assets -q '.assets[].name' > assets.txt
+          python3 - <<'PY'
+          import json, urllib.parse
+          names = set(open("assets.txt").read().split("\n"))
+          for target, p in json.load(open("latest.json"))["platforms"].items():
+              name = urllib.parse.unquote(p["url"].rsplit("/", 1)[1])
+              assert name in names, f"{target}: {name} is not a release asset ({sorted(names)})"
+          PY
           gh release edit "$RELEASE_TAG" --draft=false --latest

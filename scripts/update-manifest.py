@@ -17,5 +17,7 @@ for target, pattern in [("darwin-aarch64", "*.app.tar.gz"), ("linux-x86_64", "*.
     signature = Path(str(artifact) + ".sig").read_text().strip()
     if not signature:
         raise SystemExit(f"Missing signature for {target}")
-    platforms[target] = {"signature": signature, "url": f"https://github.com/{repo}/releases/download/{quote(tag, safe='')}/{quote(artifact.name, safe='')}"}
+    # GitHub renames uploaded assets (spaces become dots), so link the name it will actually serve.
+    served = artifact.name.replace(" ", ".")
+    platforms[target] = {"signature": signature, "url": f"https://github.com/{repo}/releases/download/{quote(tag, safe='')}/{quote(served, safe='')}"}
 Path("latest.json").write_text(json.dumps({"version": tag.removeprefix("v"), "notes": f"Linear Looper {tag}", "pub_date": datetime.now(timezone.utc).isoformat(), "platforms": platforms}, indent=2) + "\n")
