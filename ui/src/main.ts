@@ -5,6 +5,7 @@ import { initResources } from "./resources.ts";
 import { initUpdates } from "./updates.ts";
 import { getVersion } from "@tauri-apps/api/app";
 import { loadHealth, showFatal } from "./health.ts";
+import { onboardingActive, onboardingPage } from "./onboarding.ts";
 import { html } from "./tpl.ts";
 import { header, refreshService, sidebar, tryStartOnce } from "./shell.ts";
 import { initRegistry, registryPage } from "./registry.ts";
@@ -31,9 +32,13 @@ function render() {
   // Keep typing intact in the inputs a re-render would otherwise recreate.
   const active = document.activeElement as HTMLInputElement | null;
   const focus = active?.id ? { id: active.id, start: active.selectionStart, end: active.selectionEnd } : null;
-  const page = html`<main class="app-main"></main>`;
-  page.append(PAGES[ui.page]());
-  root.replaceChildren(header(), sidebar(), page);
+  if (onboardingActive()) {
+    root.replaceChildren(onboardingPage());
+  } else {
+    const page = html`<main class="app-main"></main>`;
+    page.append(PAGES[ui.page]());
+    root.replaceChildren(header(), sidebar(), page);
+  }
   if (focus) {
     const el = document.getElementById(focus.id) as HTMLInputElement | null;
     if (el) {

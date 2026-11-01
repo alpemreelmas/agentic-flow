@@ -60,7 +60,7 @@ act("log-show", async () => {
 
 const dot = (ok: boolean, optional = false) => `dot ${ok ? "text-positive" : optional ? "text-muted" : "text-warning"}`;
 
-function row(ok: boolean, title: string, detail: string, action?: HTMLElement | string): HTMLElement {
+export function row(ok: boolean, title: string, detail: string, action?: HTMLElement | string): HTMLElement {
   return html`<div class="flex items-center gap-3 px-5 py-2.5 border-t border-rule">
     <span class="${dot(ok)}"></span>
     <div class="min-w-0 flex-1"><div class="text-body text-ink">${title}</div><div class="text-small text-muted break-words">${detail}</div></div>
